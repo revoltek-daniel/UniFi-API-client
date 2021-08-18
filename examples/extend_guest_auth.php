@@ -24,7 +24,7 @@ $site_id   = "default";
 $site_name = "*enter your site name*";
 
 $unifi_connection = new UniFi_API\Client($controlleruser, $controllerpassword, $controllerurl, $site_id, $controllerversion);
-$set_debug_mode   = $unifi_connection->set_debug($debug);
+$set_debug_mode   = $unifi_connection->setDebug($debug);
 $loginresults     = $unifi_connection->login();
 
 if ($loginresults === 400) {
@@ -45,23 +45,23 @@ if ($loginresults === 400) {
             /**
              * extend clients five times = five days
              */
-            if (!$unifi_connection->extend_guest_validity($guest->_id)) {
+            if (!$unifi_connection->extendGuestValidity($guest->_id)) {
                 print "Extend failed for guest with id " . $guest->_id . "\n";
             }
 
-            if (!$unifi_connection->extend_guest_validity($guest->_id)) {
+            if (!$unifi_connection->extendGuestValidity($guest->_id)) {
                 print "Extend failed for guest with id " . $guest->_id . "\n";
             }
 
-            if (!$unifi_connection->extend_guest_validity($guest->_id)) {
+            if (!$unifi_connection->extendGuestValidity($guest->_id)) {
                 print "Extend failed for guest with id " . $guest->_id . "\n";
             }
 
-            if (!$unifi_connection->extend_guest_validity($guest->_id)) {
+            if (!$unifi_connection->extendGuestValidity($guest->_id)) {
                 print "Extend failed for guest with id " . $guest->_id . "\n";
             }
 
-            if (!$unifi_connection->extend_guest_validity($guest->_id)) {
+            if (!$unifi_connection->extendGuestValidity($guest->_id)) {
                 print "Extend failed for guest with id " . $guest->_id . "\n";
             }
         }

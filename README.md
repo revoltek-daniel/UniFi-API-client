@@ -91,7 +91,7 @@ require_once 'vendor/autoload.php';
  */
 $unifi_connection = new UniFi_API\Client($controller_user, $controller_password, $controller_url, $site_id, $controller_version, true);
 $login            = $unifi_connection->login();
-$results          = $unifi_connection->list_alarms(); // returns a PHP array containing alarm objects
+$results          = $unifi_connection->listAlarms(); // returns a PHP array containing alarm objects
 ```
 
 Please refer to the `examples/` directory for some more detailed examples which can be used as a starting point for your own PHP code.

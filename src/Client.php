@@ -1,4 +1,5 @@
 <?php
+
 namespace UniFi_API;
 
 /**
@@ -22,56 +23,56 @@ class Client
     /**
      * private and protected properties
      */
-    private $class_version        = '1.1.70';
-    protected $baseurl            = 'https://127.0.0.1:8443';
-    protected $user               = '';
-    protected $password           = '';
-    protected $site               = 'default';
-    protected $version            = '6.0.43';
-    protected $debug              = false;
-    protected $ssl_verify_peer    = false;
-    protected $ssl_verify_host    = false;
-    protected $is_loggedin        = false;
-    protected $is_unifi_os        = false;
-    protected $exec_retries       = 0;
-    protected $cookies            = '';
-    protected $headers            = [];
-    protected $method             = 'GET';
-    protected $methods_allowed    = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
-    protected $connect_timeout    = 10;
-    protected $last_results_raw   = null;
-    protected $last_error_message = null;
+    private string $classVersion = '1.1.70';
+    protected string $baseurl = 'https://127.0.0.1:8443';
+    protected string $user = '';
+    protected string $password = '';
+    protected string $site = 'default';
+    protected string $version = '6.0.43';
+    protected bool $debug = false;
+    protected bool $sslVerifyPeer = false;
+    protected $sslVerifyHost = false;
+    protected bool $isLoggedin = false;
+    protected bool $isUnifiOs = false;
+    protected int $execRetries = 0;
+    protected string $cookies = '';
+    protected array $headers = [];
+    protected string $method = 'GET';
+    protected array $methodsAllowed = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+    protected int $connectTimeout = 10;
+    protected $lastResultsRaw = null;
+    protected $lastErrorMessage = null;
 
     /**
      * Construct an instance of the UniFi API client class
      *
-     * @param string  $user       user name to use when connecting to the UniFi controller
-     * @param string  $password   password to use when connecting to the UniFi controller
-     * @param string  $baseurl    optional, base URL of the UniFi controller which *must* include an 'https://' prefix,
+     * @param string $user user name to use when connecting to the UniFi controller
+     * @param string $password password to use when connecting to the UniFi controller
+     * @param string $baseurl optional, base URL of the UniFi controller which *must* include an 'https://' prefix,
      *                            a port suffix (e.g. :8443) is required for non-UniFi OS controllers,
      *                            do not add trailing slashes, default value is 'https://127.0.0.1:8443'
-     * @param string  $site       optional, short site name to access, defaults to 'default'
-     * @param string  $version    optional, the version number of the controller
-     * @param bool    $ssl_verify optional, whether to validate the controller's SSL certificate or not, a value of true is
+     * @param string $site optional, short site name to access, defaults to 'default'
+     * @param string $version optional, the version number of the controller
+     * @param bool $sslVerify optional, whether to validate the controller's SSL certificate or not, a value of true is
      *                            recommended for production environments to prevent potential MitM attacks, default value (false)
      *                            disables validation of the controller certificate
      */
-    public function __construct($user, $password, $baseurl = '', $site = '', $version = '', $ssl_verify = false)
+    public function __construct(string $user, string $password, string $baseurl = '', string $site = '', string $version = '', bool $sslVerify = false)
     {
         if (!extension_loaded('curl')) {
             trigger_error('The PHP curl extension is not loaded. Please correct this before proceeding!');
         }
 
-        $this->user     = trim($user);
+        $this->user = trim($user);
         $this->password = trim($password);
 
         if (!empty($baseurl)) {
-            $this->check_base_url($baseurl);
+            $this->checkBaseUrl($baseurl);
             $this->baseurl = trim($baseurl);
         }
 
         if (!empty($site)) {
-            $this->check_site($site);
+            $this->checkSite($site);
             $this->site = trim($site);
         }
 
@@ -79,9 +80,9 @@ class Client
             $this->version = trim($version);
         }
 
-        if ((boolean) $ssl_verify === true) {
-            $this->ssl_verify_peer = true;
-            $this->ssl_verify_host = 2;
+        if ((boolean)$sslVerify === true) {
+            $this->sslVerifyPeer = true;
+            $this->sslVerifyHost = 2;
         }
     }
 
@@ -103,7 +104,7 @@ class Client
         /**
          * logout, if needed
          */
-        if ($this->is_loggedin) {
+        if ($this->isLoggedin) {
             $this->logout();
         }
     }
@@ -118,12 +119,12 @@ class Client
         /**
          * skip the login process if already logged in
          */
-        if ($this->is_loggedin === true) {
+        if ($this->isLoggedin === true) {
             return true;
         }
 
-        if ($this->update_unificookie()) {
-            $this->is_loggedin = true;
+        if ($this->updateUnificookie()) {
+            $this->isLoggedin = true;
 
             return true;
         }
@@ -132,15 +133,15 @@ class Client
          * check whether this is a "regular" controller or one based on UniFi OS,
          * prepare cURL and options
          */
-        if (!($ch = $this->get_curl_resource())) {
+        if (!($ch = $this->getCurlResource())) {
             return false;
         }
 
         $curl_options = [
             CURLOPT_HEADER => true,
-            CURLOPT_POST   => true,
+            CURLOPT_POST => true,
             CURLOPT_NOBODY => true,
-            CURLOPT_URL    => $this->baseurl . '/',
+            CURLOPT_URL => $this->baseurl . '/',
         ];
 
         curl_setopt_array($ch, $curl_options);
@@ -159,21 +160,21 @@ class Client
          * prepare the actual login
          */
         $curl_options = [
-            CURLOPT_NOBODY     => false,
+            CURLOPT_NOBODY => false,
             CURLOPT_POSTFIELDS => json_encode(['username' => $this->user, 'password' => $this->password]),
             CURLOPT_HTTPHEADER => [
                 'content-type: application/json',
                 'Expect:'
             ],
-            CURLOPT_REFERER    => $this->baseurl . '/login',
-            CURLOPT_URL        => $this->baseurl . '/api/login',
+            CURLOPT_REFERER => $this->baseurl . '/login',
+            CURLOPT_URL => $this->baseurl . '/api/login',
         ];
 
         /**
          * specific to UniFi OS-based controllers
          */
         if ($http_code === 200) {
-            $this->is_unifi_os         = true;
+            $this->isUnifiOs = true;
             $curl_options[CURLOPT_URL] = $this->baseurl . '/api/auth/login';
         }
 
@@ -182,7 +183,7 @@ class Client
         /**
          * execute the cURL request and get the HTTP response code
          */
-        $response  = curl_exec($ch);
+        $response = curl_exec($ch);
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
         if (curl_errno($ch)) {
@@ -214,7 +215,7 @@ class Client
          * extract the cookies
          */
         if ($http_code >= 200 && $http_code < 400) {
-            return $this->is_loggedin;
+            return $this->isLoggedin;
         }
 
         return false;
@@ -230,13 +231,13 @@ class Client
         /**
          * prepare cURL and options
          */
-        if (!($ch = $this->get_curl_resource())) {
+        if (!($ch = $this->getCurlResource())) {
             return false;
         }
 
         $curl_options = [
             CURLOPT_HEADER => true,
-            CURLOPT_POST   => true
+            CURLOPT_POST => true
         ];
 
         /**
@@ -247,8 +248,8 @@ class Client
             'Expect:'
         ];
 
-        $logout_path   = '/logout';
-        if ($this->is_unifi_os) {
+        $logout_path = '/logout';
+        if ($this->isUnifiOs) {
             $logout_path = '/api/auth/logout';
             $curl_options[CURLOPT_CUSTOMREQUEST] = 'POST';
 
@@ -256,7 +257,7 @@ class Client
         }
 
         $curl_options[CURLOPT_HTTPHEADER] = $this->headers;
-        $curl_options[CURLOPT_URL]        = $this->baseurl . $logout_path;
+        $curl_options[CURLOPT_URL] = $this->baseurl . $logout_path;
 
         curl_setopt_array($ch, $curl_options);
 
@@ -271,8 +272,8 @@ class Client
 
         curl_close($ch);
 
-        $this->is_loggedin = false;
-        $this->cookies     = '';
+        $this->isLoggedin = false;
+        $this->cookies = '';
 
         return true;
     }
@@ -284,12 +285,12 @@ class Client
     /**
      * Authorize a client device
      *
-     * @param  string $mac       client MAC address
-     * @param  int    $minutes   minutes (from now) until authorization expires
-     * @param  int    $up        optional, upload speed limit in kbps
-     * @param  int    $down      optional, download speed limit in kbps
-     * @param  int    $megabytes optional, data transfer limit in MB
-     * @param  int    $ap_mac    optional, AP MAC address to which client is connected, should result in faster authorization
+     * @param string $mac client MAC address
+     * @param int $minutes minutes (from now) until authorization expires
+     * @param int $up optional, upload speed limit in kbps
+     * @param int $down optional, download speed limit in kbps
+     * @param int $megabytes optional, data transfer limit in MB
+     * @param int $ap_mac optional, AP MAC address to which client is connected, should result in faster authorization
      * @return bool              returns true upon success
      */
     public function authorize_guest($mac, $minutes, $up = null, $down = null, $megabytes = null, $ap_mac = null)
@@ -315,59 +316,59 @@ class Client
             $payload['ap_mac'] = strtolower($ap_mac);
         }
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/stamgr', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/stamgr', $payload);
     }
 
     /**
      * Unauthorize a client device
      *
-     * @param  string $mac client MAC address
+     * @param string $mac client MAC address
      * @return bool        returns true upon success
      */
     public function unauthorize_guest($mac)
     {
         $payload = ['cmd' => 'unauthorize-guest', 'mac' => strtolower($mac)];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/stamgr', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/stamgr', $payload);
     }
 
     /**
      * Reconnect a client device
      *
-     * @param  string $mac client MAC address
+     * @param string $mac client MAC address
      * @return bool        returns true upon success
      */
     public function reconnect_sta($mac)
     {
         $payload = ['cmd' => 'kick-sta', 'mac' => strtolower($mac)];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/stamgr', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/stamgr', $payload);
     }
 
     /**
      * Block a client device
      *
-     * @param  string $mac client MAC address
+     * @param string $mac client MAC address
      * @return bool        returns true upon success
      */
     public function block_sta($mac)
     {
         $payload = ['cmd' => 'block-sta', 'mac' => strtolower($mac)];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/stamgr', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/stamgr', $payload);
     }
 
     /**
      * Unblock a client device
      *
-     * @param  string $mac client MAC address
+     * @param string $mac client MAC address
      * @return bool        returns true upon success
      */
     public function unblock_sta($mac)
     {
         $payload = ['cmd' => 'unblock-sta', 'mac' => strtolower($mac)];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/stamgr', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/stamgr', $payload);
     }
 
     /**
@@ -377,26 +378,26 @@ class Client
      * only supported with controller versions 5.9.X and higher, can be
      * slow (up to 5 minutes) on larger controllers
      *
-     * @param  array $macs array of client MAC addresses (strings)
+     * @param array $macs array of client MAC addresses (strings)
      * @return bool        returns true upon success
      */
     public function forget_sta($macs)
     {
         $payload = ['cmd' => 'forget-sta', 'macs' => array_map('strtolower', $macs)];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/stamgr', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/stamgr', $payload);
     }
 
     /**
      * Create a new user/client-device
      *
-     * @param  string     $mac           client MAC address
-     * @param  string     $user_group_id _id value for the user group the new user/client-device should belong to which
-     *                                   can be obtained from the output of list_usergroups()
-     * @param  string     $name          optional, name to be given to the new user/client-device
-     * @param  string     $note          optional, note to be applied to the new user/client-device
-     * @param  bool       $is_guest      optional, defines whether the new user/client-device is a guest or not
-     * @param  bool       $is_wired      optional, defines whether the new user/client-device is wired or not
+     * @param string $mac client MAC address
+     * @param string $user_group_id _id value for the user group the new user/client-device should belong to which
+     *                                   can be obtained from the output of listUserGroups()
+     * @param string $name optional, name to be given to the new user/client-device
+     * @param string $note optional, note to be applied to the new user/client-device
+     * @param bool $is_guest optional, defines whether the new user/client-device is a guest or not
+     * @param bool $is_wired optional, defines whether the new user/client-device is wired or not
      * @return array|bool                returns an array with a single object containing details of the new user/client-device on success, else returns false
      */
     public function create_user($mac, $user_group_id, $name = null, $note = null, $is_guest = null, $is_wired = null)
@@ -407,7 +408,7 @@ class Client
         }
 
         if (!empty($note)) {
-            $new_user['note']  = $note;
+            $new_user['note'] = $note;
         }
 
         if (!empty($is_guest) && is_bool($is_guest)) {
@@ -420,14 +421,14 @@ class Client
 
         $payload = ['objects' => [['data' => $new_user]]];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/group/user', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/group/user', $payload);
     }
 
     /**
      * Add/modify/remove a client-device note
      *
-     * @param  string $user_id id of the client-device to be modified
-     * @param  string $note    optional, note to be applied to the client-device, when empty or not set,
+     * @param string $user_id id of the client-device to be modified
+     * @param string $note optional, note to be applied to the client-device, when empty or not set,
      *                         the existing note for the client-device is removed and "noted" attribute set to false
      * @return bool            returns true upon success
      */
@@ -436,14 +437,14 @@ class Client
         //$noted   = empty($note) ? false : true;
         $payload = ['note' => $note];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/upd/user/' . trim($user_id), $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/upd/user/' . trim($user_id), $payload);
     }
 
     /**
      * Add/modify/remove a client device name
      *
-     * @param  string $user_id id of the client-device to be modified
-     * @param  string $name    optional, name to be applied to the client device, when empty or not set,
+     * @param string $user_id id of the client-device to be modified
+     * @param string $name optional, name to be applied to the client device, when empty or not set,
      *                         the existing name for the client device is removed
      * @return bool            returns true upon success
      */
@@ -451,7 +452,7 @@ class Client
     {
         $payload = ['name' => $name];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/upd/user/' . trim($user_id), $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/upd/user/' . trim($user_id), $payload);
     }
 
     /**
@@ -463,14 +464,14 @@ class Client
      * - make sure that the retention policy for 5 minutes stats is set to the correct value in
      *   the controller settings
      *
-     * @param  int   $start optional, Unix timestamp in milliseconds
-     * @param  int   $end   optional, Unix timestamp in milliseconds
+     * @param int $start optional, Unix timestamp in milliseconds
+     * @param int $end optional, Unix timestamp in milliseconds
      * @return array        returns an array of 5-minute stats objects for the current site
      */
     public function stat_5minutes_site($start = null, $end = null)
     {
-        $end     = empty($end) ? time() * 1000 : intval($end);
-        $start   = empty($start) ? $end - (12 * 3600 * 1000) : intval($start);
+        $end = empty($end) ? time() * 1000 : intval($end);
+        $start = empty($start) ? $end - (12 * 3600 * 1000) : intval($start);
         $attribs = [
             'bytes',
             'wan-tx_bytes',
@@ -483,7 +484,7 @@ class Client
         ];
         $payload = ['attrs' => $attribs, 'start' => $start, 'end' => $end];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/report/5minutes.site', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/report/5minutes.site', $payload);
     }
 
     /**
@@ -493,14 +494,14 @@ class Client
      * - defaults to the past 7*24 hours
      * - "bytes" are no longer returned with controller version 4.9.1 and later
      *
-     * @param  int   $start optional, Unix timestamp in milliseconds
-     * @param  int   $end   optional, Unix timestamp in milliseconds
+     * @param int $start optional, Unix timestamp in milliseconds
+     * @param int $end optional, Unix timestamp in milliseconds
      * @return array        returns an array of hourly stats objects for the current site
      */
     public function stat_hourly_site($start = null, $end = null)
     {
-        $end     = empty($end) ? time() * 1000 : intval($end);
-        $start   = empty($start) ? $end - (7 * 24 * 3600 * 1000) : intval($start);
+        $end = empty($end) ? time() * 1000 : intval($end);
+        $start = empty($start) ? $end - (7 * 24 * 3600 * 1000) : intval($start);
         $attribs = [
             'bytes',
             'wan-tx_bytes',
@@ -513,7 +514,7 @@ class Client
         ];
         $payload = ['attrs' => $attribs, 'start' => $start, 'end' => $end];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/report/hourly.site', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/report/hourly.site', $payload);
     }
 
     /**
@@ -523,14 +524,14 @@ class Client
      * - defaults to the past 52*7*24 hours
      * - "bytes" are no longer returned with controller version 4.9.1 and later
      *
-     * @param  int   $start optional, Unix timestamp in milliseconds
-     * @param  int   $end   optional, Unix timestamp in milliseconds
+     * @param int $start optional, Unix timestamp in milliseconds
+     * @param int $end optional, Unix timestamp in milliseconds
      * @return array        returns an array of daily stats objects for the current site
      */
     public function stat_daily_site($start = null, $end = null)
     {
-        $end     = empty($end) ? (time() - (time() % 3600)) * 1000 : intval($end);
-        $start   = empty($start) ? $end - (52 * 7 * 24 * 3600 * 1000) : intval($start);
+        $end = empty($end) ? (time() - (time() % 3600)) * 1000 : intval($end);
+        $start = empty($start) ? $end - (52 * 7 * 24 * 3600 * 1000) : intval($start);
         $attribs = [
             'bytes',
             'wan-tx_bytes',
@@ -543,7 +544,7 @@ class Client
         ];
         $payload = ['attrs' => $attribs, 'start' => $start, 'end' => $end];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/report/daily.site', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/report/daily.site', $payload);
     }
 
     /**
@@ -553,14 +554,14 @@ class Client
      * - defaults to the past 52 weeks (52*7*24 hours)
      * - "bytes" are no longer returned with controller version 4.9.1 and later
      *
-     * @param  int   $start optional, Unix timestamp in milliseconds
-     * @param  int   $end   optional, Unix timestamp in milliseconds
+     * @param int $start optional, Unix timestamp in milliseconds
+     * @param int $end optional, Unix timestamp in milliseconds
      * @return array        returns an array of monthly stats objects for the current site
      */
     public function stat_monthly_site($start = null, $end = null)
     {
-        $end     = empty($end) ? (time() - (time() % 3600)) * 1000 : intval($end);
-        $start   = empty($start) ? $end - (52 * 7 * 24 * 3600 * 1000) : intval($start);
+        $end = empty($end) ? (time() - (time() % 3600)) * 1000 : intval($end);
+        $start = empty($start) ? $end - (52 * 7 * 24 * 3600 * 1000) : intval($start);
         $attribs = [
             'bytes',
             'wan-tx_bytes',
@@ -573,7 +574,7 @@ class Client
         ];
         $payload = ['attrs' => $attribs, 'start' => $start, 'end' => $end];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/report/monthly.site', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/report/monthly.site', $payload);
     }
 
     /**
@@ -585,23 +586,23 @@ class Client
      * - make sure that the retention policy for 5 minutes stats is set to the correct value in
      *   the controller settings
      *
-     * @param  int    $start optional, Unix timestamp in milliseconds
-     * @param  int    $end   optional, Unix timestamp in milliseconds
-     * @param  string $mac   optional, AP MAC address to return stats for, when empty,
+     * @param int $start optional, Unix timestamp in milliseconds
+     * @param int $end optional, Unix timestamp in milliseconds
+     * @param string $mac optional, AP MAC address to return stats for, when empty,
      *                       stats for all APs are returned
      * @return array         returns an array of 5-minute stats objects
      */
     public function stat_5minutes_aps($start = null, $end = null, $mac = null)
     {
-        $end     = empty($end) ? time() * 1000 : intval($end);
-        $start   = empty($start) ? $end - (12 * 3600 * 1000) : intval($start);
+        $end = empty($end) ? time() * 1000 : intval($end);
+        $start = empty($start) ? $end - (12 * 3600 * 1000) : intval($start);
         $attribs = ['bytes', 'num_sta', 'time'];
         $payload = ['attrs' => $attribs, 'start' => $start, 'end' => $end];
         if (!empty($mac)) {
             $payload['mac'] = strtolower($mac);
         }
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/report/5minutes.ap', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/report/5minutes.ap', $payload);
     }
 
     /**
@@ -612,23 +613,23 @@ class Client
      * - make sure that the retention policy for hourly stats is set to the correct value in
      *   the controller settings
      *
-     * @param  int    $start optional, Unix timestamp in milliseconds
-     * @param  int    $end   optional, Unix timestamp in milliseconds
-     * @param  string $mac   optional, AP MAC address to return stats for, when empty,
+     * @param int $start optional, Unix timestamp in milliseconds
+     * @param int $end optional, Unix timestamp in milliseconds
+     * @param string $mac optional, AP MAC address to return stats for, when empty,
      *                       stats for all APs are returned
      * @return array         returns an array of hourly stats objects
      */
     public function stat_hourly_aps($start = null, $end = null, $mac = null)
     {
-        $end     = empty($end) ? (time() * 1000) : intval($end);
-        $start   = empty($start) ? $end - (7 * 24 * 3600 * 1000) : intval($start);
+        $end = empty($end) ? (time() * 1000) : intval($end);
+        $start = empty($start) ? $end - (7 * 24 * 3600 * 1000) : intval($start);
         $attribs = ['bytes', 'num_sta', 'time'];
         $payload = ['attrs' => $attribs, 'start' => $start, 'end' => $end];
         if (!empty($mac)) {
             $payload['mac'] = strtolower($mac);
         }
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/report/hourly.ap', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/report/hourly.ap', $payload);
     }
 
     /**
@@ -639,23 +640,23 @@ class Client
      * - make sure that the retention policy for hourly stats is set to the correct value in
      *   the controller settings
      *
-     * @param  int    $start optional, Unix timestamp in milliseconds
-     * @param  int    $end   optional, Unix timestamp in milliseconds
-     * @param  string $mac   optional, AP MAC address to return stats for, when empty,
+     * @param int $start optional, Unix timestamp in milliseconds
+     * @param int $end optional, Unix timestamp in milliseconds
+     * @param string $mac optional, AP MAC address to return stats for, when empty,
      *                       stats for all APs are returned
      * @return array         returns an array of daily stats objects
      */
     public function stat_daily_aps($start = null, $end = null, $mac = null)
     {
-        $end     = empty($end) ? time() * 1000 : intval($end);
-        $start   = empty($start) ? $end - (7 * 24 * 3600 * 1000) : intval($start);
+        $end = empty($end) ? time() * 1000 : intval($end);
+        $start = empty($start) ? $end - (7 * 24 * 3600 * 1000) : intval($start);
         $attribs = ['bytes', 'num_sta', 'time'];
         $payload = ['attrs' => $attribs, 'start' => $start, 'end' => $end];
         if (!empty($mac)) {
             $payload['mac'] = strtolower($mac);
         }
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/report/daily.ap', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/report/daily.ap', $payload);
     }
 
     /**
@@ -666,23 +667,23 @@ class Client
      * - make sure that the retention policy for hourly stats is set to the correct value in
      *   the controller settings
      *
-     * @param  int    $start optional, Unix timestamp in milliseconds
-     * @param  int    $end   optional, Unix timestamp in milliseconds
-     * @param  string $mac   optional, AP MAC address to return stats for, when empty,
+     * @param int $start optional, Unix timestamp in milliseconds
+     * @param int $end optional, Unix timestamp in milliseconds
+     * @param string $mac optional, AP MAC address to return stats for, when empty,
      *                       stats for all APs are returned
      * @return array         returns an array of monthly stats objects
      */
     public function stat_monthly_aps($start = null, $end = null, $mac = null)
     {
-        $end     = empty($end) ? time() * 1000 : intval($end);
-        $start   = empty($start) ? $end - (52 * 7 * 24 * 3600 * 1000) : intval($start);
+        $end = empty($end) ? time() * 1000 : intval($end);
+        $start = empty($start) ? $end - (52 * 7 * 24 * 3600 * 1000) : intval($start);
         $attribs = ['bytes', 'num_sta', 'time'];
         $payload = ['attrs' => $attribs, 'start' => $start, 'end' => $end];
         if (!empty($mac)) {
             $payload['mac'] = strtolower($mac);
         }
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/report/monthly.ap', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/report/monthly.ap', $payload);
     }
 
     /**
@@ -695,22 +696,22 @@ class Client
      *   the controller settings
      * - make sure that "Clients Historical Data" has been enabled in the UniFi controller settings in the Maintenance section
      *
-     * @param  string $mac     MAC address of user/client device to return stats for
-     * @param  int    $start   optional, Unix timestamp in milliseconds
-     * @param  int    $end     optional, Unix timestamp in milliseconds
-     * @param  array  $attribs array containing attributes (strings) to be returned, valid values are:
+     * @param string $mac MAC address of user/client device to return stats for
+     * @param int $start optional, Unix timestamp in milliseconds
+     * @param int $end optional, Unix timestamp in milliseconds
+     * @param array $attribs array containing attributes (strings) to be returned, valid values are:
      *                         rx_bytes, tx_bytes, signal, rx_rate, tx_rate, rx_retries, tx_retries, rx_packets, tx_packets
      *                         default is ['rx_bytes', 'tx_bytes']
      * @return array           returns an array of 5-minute stats objects
      */
     public function stat_5minutes_user($mac, $start = null, $end = null, $attribs = null)
     {
-        $end     = empty($end) ? time() * 1000 : intval($end);
-        $start   = empty($start) ? $end - (12 * 3600 * 1000) : intval($start);
+        $end = empty($end) ? time() * 1000 : intval($end);
+        $start = empty($start) ? $end - (12 * 3600 * 1000) : intval($start);
         $attribs = empty($attribs) ? ['time', 'rx_bytes', 'tx_bytes'] : array_merge(['time'], $attribs);
         $payload = ['attrs' => $attribs, 'start' => $start, 'end' => $end, 'mac' => strtolower($mac)];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/report/5minutes.user', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/report/5minutes.user', $payload);
     }
 
     /**
@@ -723,22 +724,22 @@ class Client
      *   the controller settings
      * - make sure that "Clients Historical Data" has been enabled in the UniFi controller settings in the Maintenance section
      *
-     * @param  string $mac     MAC address of user/client device to return stats fo
-     * @param  int    $start   optional, Unix timestamp in milliseconds
-     * @param  int    $end     optional, Unix timestamp in milliseconds
-     * @param  array  $attribs array containing attributes (strings) to be returned, valid values are:
+     * @param string $mac MAC address of user/client device to return stats fo
+     * @param int $start optional, Unix timestamp in milliseconds
+     * @param int $end optional, Unix timestamp in milliseconds
+     * @param array $attribs array containing attributes (strings) to be returned, valid values are:
      *                         rx_bytes, tx_bytes, signal, rx_rate, tx_rate, rx_retries, tx_retries, rx_packets, tx_packets
      *                         default is ['rx_bytes', 'tx_bytes']
      * @return array           returns an array of hourly stats objects
      */
     public function stat_hourly_user($mac, $start = null, $end = null, $attribs = null)
     {
-        $end     = empty($end) ? time() * 1000 : intval($end);
-        $start   = empty($start) ? $end - (7 * 24 * 3600 * 1000) : intval($start);
+        $end = empty($end) ? time() * 1000 : intval($end);
+        $start = empty($start) ? $end - (7 * 24 * 3600 * 1000) : intval($start);
         $attribs = empty($attribs) ? ['time', 'rx_bytes', 'tx_bytes'] : array_merge(['time'], $attribs);
         $payload = ['attrs' => $attribs, 'start' => $start, 'end' => $end, 'mac' => strtolower($mac)];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/report/hourly.user', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/report/hourly.user', $payload);
     }
 
     /**
@@ -751,22 +752,22 @@ class Client
      *   the controller settings
      * - make sure that "Clients Historical Data" has been enabled in the UniFi controller settings in the Maintenance section
      *
-     * @param  string $mac     MAC address of user/client device to return stats for
-     * @param  int    $start   optional, Unix timestamp in milliseconds
-     * @param  int    $end     optional, Unix timestamp in milliseconds
-     * @param  array  $attribs array containing attributes (strings) to be returned, valid values are:
+     * @param string $mac MAC address of user/client device to return stats for
+     * @param int $start optional, Unix timestamp in milliseconds
+     * @param int $end optional, Unix timestamp in milliseconds
+     * @param array $attribs array containing attributes (strings) to be returned, valid values are:
      *                         rx_bytes, tx_bytes, signal, rx_rate, tx_rate, rx_retries, tx_retries, rx_packets, tx_packets
      *                         default is ['rx_bytes', 'tx_bytes']
      * @return array           returns an array of daily stats objects
      */
     public function stat_daily_user($mac, $start = null, $end = null, $attribs = null)
     {
-        $end     = empty($end) ? time() * 1000 : intval($end);
-        $start   = empty($start) ? $end - (7 * 24 * 3600 * 1000) : intval($start);
+        $end = empty($end) ? time() * 1000 : intval($end);
+        $start = empty($start) ? $end - (7 * 24 * 3600 * 1000) : intval($start);
         $attribs = empty($attribs) ? ['time', 'rx_bytes', 'tx_bytes'] : array_merge(['time'], $attribs);
         $payload = ['attrs' => $attribs, 'start' => $start, 'end' => $end, 'mac' => strtolower($mac)];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/report/daily.user', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/report/daily.user', $payload);
     }
 
     /**
@@ -779,22 +780,22 @@ class Client
      *   the controller settings
      * - make sure that "Clients Historical Data" has been enabled in the UniFi controller settings in the Maintenance section
      *
-     * @param  string $mac     MAC address of user/client device to return stats for
-     * @param  int    $start   optional, Unix timestamp in milliseconds
-     * @param  int    $end     optional, Unix timestamp in milliseconds
-     * @param  array  $attribs array containing attributes (strings) to be returned, valid values are:
+     * @param string $mac MAC address of user/client device to return stats for
+     * @param int $start optional, Unix timestamp in milliseconds
+     * @param int $end optional, Unix timestamp in milliseconds
+     * @param array $attribs array containing attributes (strings) to be returned, valid values are:
      *                         rx_bytes, tx_bytes, signal, rx_rate, tx_rate, rx_retries, tx_retries, rx_packets, tx_packets
      *                         default is ['rx_bytes', 'tx_bytes']
      * @return array           returns an array of monthly stats objects
      */
     public function stat_monthly_user($mac, $start = null, $end = null, $attribs = null)
     {
-        $end     = empty($end) ? time() * 1000 : intval($end);
-        $start   = empty($start) ? $end - (13 * 7 * 24 * 3600 * 1000) : intval($start);
+        $end = empty($end) ? time() * 1000 : intval($end);
+        $start = empty($start) ? $end - (13 * 7 * 24 * 3600 * 1000) : intval($start);
         $attribs = empty($attribs) ? ['time', 'rx_bytes', 'tx_bytes'] : array_merge(['time'], $attribs);
         $payload = ['attrs' => $attribs, 'start' => $start, 'end' => $end, 'mac' => strtolower($mac)];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/report/monthly.user', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/report/monthly.user', $payload);
     }
 
     /**
@@ -807,9 +808,9 @@ class Client
      *   the controller settings
      * - requires a USG
      *
-     * @param  int   $start   optional, Unix timestamp in milliseconds
-     * @param  int   $end     optional, Unix timestamp in milliseconds
-     * @param  array $attribs array containing attributes (strings) to be returned, valid values are:
+     * @param int $start optional, Unix timestamp in milliseconds
+     * @param int $end optional, Unix timestamp in milliseconds
+     * @param array $attribs array containing attributes (strings) to be returned, valid values are:
      *                        mem, cpu, loadavg_5, lan-rx_errors, lan-tx_errors, lan-rx_bytes,
      *                        lan-tx_bytes, lan-rx_packets, lan-tx_packets, lan-rx_dropped, lan-tx_dropped
      *                        default is ['time', 'mem', 'cpu', 'loadavg_5']
@@ -817,12 +818,12 @@ class Client
      */
     public function stat_5minutes_gateway($start = null, $end = null, $attribs = null)
     {
-        $end     = empty($end) ? time() * 1000 : intval($end);
-        $start   = empty($start) ? $end - (12 * 3600 * 1000) : intval($start);
+        $end = empty($end) ? time() * 1000 : intval($end);
+        $start = empty($start) ? $end - (12 * 3600 * 1000) : intval($start);
         $attribs = empty($attribs) ? ['time', 'mem', 'cpu', 'loadavg_5'] : array_merge(['time'], $attribs);
         $payload = ['attrs' => $attribs, 'start' => $start, 'end' => $end];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/report/5minutes.gw', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/report/5minutes.gw', $payload);
     }
 
     /**
@@ -832,9 +833,9 @@ class Client
      * - defaults to the past 7*24 hours
      * - requires a USG
      *
-     * @param  int   $start   optional, Unix timestamp in milliseconds
-     * @param  int   $end     optional, Unix timestamp in milliseconds
-     * @param  array $attribs array containing attributes (strings) to be returned, valid values are:
+     * @param int $start optional, Unix timestamp in milliseconds
+     * @param int $end optional, Unix timestamp in milliseconds
+     * @param array $attribs array containing attributes (strings) to be returned, valid values are:
      *                        mem, cpu, loadavg_5, lan-rx_errors, lan-tx_errors, lan-rx_bytes,
      *                        lan-tx_bytes, lan-rx_packets, lan-tx_packets, lan-rx_dropped, lan-tx_dropped
      *                        default is ['time', 'mem', 'cpu', 'loadavg_5']
@@ -842,12 +843,12 @@ class Client
      */
     public function stat_hourly_gateway($start = null, $end = null, $attribs = null)
     {
-        $end     = empty($end) ? time() * 1000 : intval($end);
-        $start   = empty($start) ? $end - (7 * 24 * 3600 * 1000) : intval($start);
+        $end = empty($end) ? time() * 1000 : intval($end);
+        $start = empty($start) ? $end - (7 * 24 * 3600 * 1000) : intval($start);
         $attribs = empty($attribs) ? ['time', 'mem', 'cpu', 'loadavg_5'] : array_merge(['time'], $attribs);
         $payload = ['attrs' => $attribs, 'start' => $start, 'end' => $end];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/report/hourly.gw', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/report/hourly.gw', $payload);
     }
 
     /**
@@ -857,9 +858,9 @@ class Client
      * - defaults to the past 52 weeks (52*7*24 hours)
      * - requires a USG
      *
-     * @param  int   $start   optional, Unix timestamp in milliseconds
-     * @param  int   $end     optional, Unix timestamp in milliseconds
-     * @param  array $attribs array containing attributes (strings) to be returned, valid values are:
+     * @param int $start optional, Unix timestamp in milliseconds
+     * @param int $end optional, Unix timestamp in milliseconds
+     * @param array $attribs array containing attributes (strings) to be returned, valid values are:
      *                        mem, cpu, loadavg_5, lan-rx_errors, lan-tx_errors, lan-rx_bytes,
      *                        lan-tx_bytes, lan-rx_packets, lan-tx_packets, lan-rx_dropped, lan-tx_dropped
      *                        default is ['time', 'mem', 'cpu', 'loadavg_5']
@@ -867,12 +868,12 @@ class Client
      */
     public function stat_daily_gateway($start = null, $end = null, $attribs = null)
     {
-        $end     = empty($end) ? (time() - (time() % 3600)) * 1000 : intval($end);
-        $start   = empty($start) ? $end - (52 * 7 * 24 * 3600 * 1000) : intval($start);
+        $end = empty($end) ? (time() - (time() % 3600)) * 1000 : intval($end);
+        $start = empty($start) ? $end - (52 * 7 * 24 * 3600 * 1000) : intval($start);
         $attribs = empty($attribs) ? ['time', 'mem', 'cpu', 'loadavg_5'] : array_merge(['time'], $attribs);
         $payload = ['attrs' => $attribs, 'start' => $start, 'end' => $end];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/report/daily.gw', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/report/daily.gw', $payload);
     }
 
     /**
@@ -882,9 +883,9 @@ class Client
      * - defaults to the past 52 weeks (52*7*24 hours)
      * - requires a USG
      *
-     * @param  int   $start   optional, Unix timestamp in milliseconds
-     * @param  int   $end     optional, Unix timestamp in milliseconds
-     * @param  array $attribs array containing attributes (strings) to be returned, valid values are:
+     * @param int $start optional, Unix timestamp in milliseconds
+     * @param int $end optional, Unix timestamp in milliseconds
+     * @param array $attribs array containing attributes (strings) to be returned, valid values are:
      *                        mem, cpu, loadavg_5, lan-rx_errors, lan-tx_errors, lan-rx_bytes,
      *                        lan-tx_bytes, lan-rx_packets, lan-tx_packets, lan-rx_dropped, lan-tx_dropped
      *                        default is ['time', 'mem', 'cpu', 'loadavg_5']
@@ -892,12 +893,12 @@ class Client
      */
     public function stat_monthly_gateway($start = null, $end = null, $attribs = null)
     {
-        $end     = empty($end) ? (time() - (time() % 3600)) * 1000 : intval($end);
-        $start   = empty($start) ? $end - (52 * 7 * 24 * 3600 * 1000) : intval($start);
+        $end = empty($end) ? (time() - (time() % 3600)) * 1000 : intval($end);
+        $start = empty($start) ? $end - (52 * 7 * 24 * 3600 * 1000) : intval($start);
         $attribs = empty($attribs) ? ['time', 'mem', 'cpu', 'loadavg_5'] : array_merge(['time'], $attribs);
         $payload = ['attrs' => $attribs, 'start' => $start, 'end' => $end];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/report/monthly.gw', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/report/monthly.gw', $payload);
     }
 
     /**
@@ -907,17 +908,17 @@ class Client
      * - defaults to the past 24 hours
      * - requires a USG
      *
-     * @param  int   $start optional, Unix timestamp in milliseconds
-     * @param  int   $end   optional, Unix timestamp in milliseconds
+     * @param int $start optional, Unix timestamp in milliseconds
+     * @param int $end optional, Unix timestamp in milliseconds
      * @return array        returns an array of speed test result objects
      */
     public function stat_speedtest_results($start = null, $end = null)
     {
-        $end     = empty($end) ? time() * 1000 : intval($end);
-        $start   = empty($start) ? $end - (24 * 3600 * 1000) : intval($start);
+        $end = empty($end) ? time() * 1000 : intval($end);
+        $start = empty($start) ? $end - (24 * 3600 * 1000) : intval($start);
         $payload = ['attrs' => ['xput_download', 'xput_upload', 'latency', 'time'], 'start' => $start, 'end' => $end];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/report/archive.speedtest', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/report/archive.speedtest', $payload);
     }
 
 
@@ -929,19 +930,19 @@ class Client
      * - requires a USG
      * - supported in UniFi controller versions 5.9.X and higher
      *
-     * @param  int   $start optional, Unix timestamp in milliseconds
-     * @param  int   $end   optional, Unix timestamp in milliseconds
-     * @param  int   $limit optional, maximum number of events to return, defaults to 10000
+     * @param int $start optional, Unix timestamp in milliseconds
+     * @param int $end optional, Unix timestamp in milliseconds
+     * @param int $limit optional, maximum number of events to return, defaults to 10000
      * @return array        returns an array of IPS/IDS event objects
      */
     public function stat_ips_events($start = null, $end = null, $limit = null)
     {
-        $end     = empty($end) ? time() * 1000 : intval($end);
-        $start   = empty($start) ? $end - (24 * 3600 * 1000) : intval($start);
-        $limit   = empty($limit) ? 10000 : intval($limit);
+        $end = empty($end) ? time() * 1000 : intval($end);
+        $start = empty($start) ? $end - (24 * 3600 * 1000) : intval($start);
+        $limit = empty($limit) ? 10000 : intval($limit);
         $payload = ['start' => $start, 'end' => $end, '_limit' => $limit];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/ips/event', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/ips/event', $payload);
     }
 
     /**
@@ -950,10 +951,10 @@ class Client
      * NOTES:
      * - defaults to the past 7*24 hours
      *
-     * @param  int    $start optional, Unix timestamp in milliseconds
-     * @param  int    $end   optional, Unix timestamp in milliseconds
-     * @param  string $mac   optional, client MAC address to return sessions for (can only be used when start and end are also provided)
-     * @param  string $type  optional, client type to return sessions for, can be 'all', 'guest' or 'user'; default value is 'all'
+     * @param int $start optional, Unix timestamp in milliseconds
+     * @param int $end optional, Unix timestamp in milliseconds
+     * @param string $mac optional, client MAC address to return sessions for (can only be used when start and end are also provided)
+     * @param string $type optional, client type to return sessions for, can be 'all', 'guest' or 'user'; default value is 'all'
      * @return array         returns an array of login session objects for all devices or a single device
      */
     public function stat_sessions($start = null, $end = null, $mac = null, $type = 'all')
@@ -962,14 +963,14 @@ class Client
             return false;
         }
 
-        $end     = empty($end) ? time() : intval($end);
-        $start   = empty($start) ? $end - (7 * 24 * 3600) : intval($start);
+        $end = empty($end) ? time() : intval($end);
+        $start = empty($start) ? $end - (7 * 24 * 3600) : intval($start);
         $payload = ['type' => $type, 'start' => $start, 'end' => $end];
         if (!empty($mac)) {
             $payload['mac'] = strtolower($mac);
         }
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/session', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/session', $payload);
     }
 
     /**
@@ -978,16 +979,16 @@ class Client
      * NOTES:
      * - defaults to the past 7*24 hours
      *
-     * @param  string $mac   client MAC address
-     * @param  int    $limit optional, maximum number of sessions to get (default value is 5)
+     * @param string $mac client MAC address
+     * @param int $limit optional, maximum number of sessions to get (default value is 5)
      * @return array         returns an array of login session objects for all devices or a single device
      */
     public function stat_sta_sessions_latest($mac, $limit = null)
     {
-        $limit   = empty($limit) ? 5 : intval($limit);
-        $payload = ['mac' => strtolower($mac), '_limit' => $limit, '_sort'=> '-assoc_time'];
+        $limit = empty($limit) ? 5 : intval($limit);
+        $payload = ['mac' => strtolower($mac), '_limit' => $limit, '_sort' => '-assoc_time'];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/session', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/session', $payload);
     }
 
     /**
@@ -996,17 +997,17 @@ class Client
      * NOTES:
      * - defaults to the past 7*24 hours
      *
-     * @param  int   $start optional, Unix timestamp in milliseconds
-     * @param  int   $end   optional, Unix timestamp in milliseconds
+     * @param int $start optional, Unix timestamp in milliseconds
+     * @param int $end optional, Unix timestamp in milliseconds
      * @return array        returns an array of authorization objects
      */
     public function stat_auths($start = null, $end = null)
     {
-        $end     = empty($end) ? time() : intval($end);
-        $start   = empty($start) ? $end - (7 * 24 * 3600) : intval($start);
+        $end = empty($end) ? time() : intval($end);
+        $start = empty($start) ? $end - (7 * 24 * 3600) : intval($start);
         $payload = ['start' => $start, 'end' => $end];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/authorization', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/authorization', $payload);
     }
 
     /**
@@ -1016,14 +1017,14 @@ class Client
      * - <historyhours> is only used to select clients that were online within that period,
      *   the returned stats per client are all-time totals, irrespective of the value of <historyhours>
      *
-     * @param  int   $historyhours optional, hours to go back (default is 8760 hours or 1 year)
+     * @param int $historyhours optional, hours to go back (default is 8760 hours or 1 year)
      * @return array               returns an array of client device objects
      */
     public function stat_allusers($historyhours = 8760)
     {
         $payload = ['type' => 'all', 'conn' => 'all', 'within' => intval($historyhours)];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/alluser', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/alluser', $payload);
     }
 
     /**
@@ -1032,59 +1033,59 @@ class Client
      * NOTES:
      * - defaults to the past 7*24 hours
      *
-     * @param  int   $within optional, time frame in hours to go back to list guests with valid access (default = 24*365 hours)
+     * @param int $within optional, time frame in hours to go back to list guests with valid access (default = 24*365 hours)
      * @return array         returns an array of guest device objects with valid access
      */
     public function list_guests($within = 8760)
     {
         $payload = ['within' => intval($within)];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/guest', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/guest', $payload);
     }
 
     /**
      * Fetch online client device(s)
      *
-     * @param  string $client_mac optional, the MAC address of a single online client device for which the call must be made
+     * @param string $client_mac optional, the MAC address of a single online client device for which the call must be made
      * @return array              returns an array of online client device objects, or in case of a single device request, returns a single client device object
      */
     public function list_clients($client_mac = null)
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/sta/' . strtolower(trim($client_mac)));
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/sta/' . strtolower(trim($client_mac)));
     }
 
     /**
      * Fetch details for a single client device
      *
-     * @param  string $client_mac optional, client device MAC address
+     * @param string $client_mac optional, client device MAC address
      * @return array              returns an object with the client device information
      */
     public function stat_client($client_mac)
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/user/' . strtolower(trim($client_mac)));
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/user/' . strtolower(trim($client_mac)));
     }
 
     /**
      * Assign client device to another group
      *
-     * @param  string $user_id  id of the user device to be modified
-     * @param  string $group_id id of the user group to assign user to
+     * @param string $user_id id of the user device to be modified
+     * @param string $group_id id of the user group to assign user to
      * @return bool             returns true upon success
      */
     public function set_usergroup($user_id, $group_id)
     {
         $payload = ['usergroup_id' => $group_id];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/upd/user/' . trim($user_id), $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/upd/user/' . trim($user_id), $payload);
     }
 
     /**
      * Update client fixedip (using REST)
      *
-     * @param  string $client_id   _id value for the client
-     * @param  bool   $use_fixedip determines whether use_fixedip is true or false
-     * @param  string $network_id  optional, _id value for the network where the ip belongs to
-     * @param  string $fixed_ip    optional, IP address, value of client's fixed_ip field
+     * @param string $client_id _id value for the client
+     * @param bool $use_fixedip determines whether use_fixedip is true or false
+     * @param string $network_id optional, _id value for the network where the ip belongs to
+     * @param string $fixed_ip optional, IP address, value of client's fixed_ip field
      * @return array               returns an array containing a single object with attributes of the updated client on success
      */
     public function edit_client_fixedip($client_id, $use_fixedip, $network_id = null, $fixed_ip = null)
@@ -1095,7 +1096,7 @@ class Client
 
         $this->method = 'PUT';
         $payload = [
-            '_id'         => $client_id,
+            '_id' => $client_id,
             'use_fixedip' => $use_fixedip
         ];
 
@@ -1109,7 +1110,7 @@ class Client
             }
         }
 
-        return $this->fetch_results('/api/s/' . $this->site . '/rest/user/' . trim($client_id), $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/rest/user/' . trim($client_id), $payload);
     }
 
     /**
@@ -1117,61 +1118,61 @@ class Client
      *
      * @return array returns an array of user group objects
      */
-    public function list_usergroups()
+    public function listUserGroups()
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/list/usergroup');
+        return $this->fetchResults('/api/s/' . $this->site . '/list/usergroup');
     }
 
     /**
      * Create user group (using REST)
      *
-     * @param  string $group_name name of the user group
-     * @param  int    $group_dn   limit download bandwidth in Kbps (default = -1, which sets bandwidth to unlimited)
-     * @param  int    $group_up   limit upload bandwidth in Kbps (default = -1, which sets bandwidth to unlimited)
+     * @param string $groupName name of the user group
+     * @param int $bandwidthDown limit download bandwidth in Kbps (default = -1, which sets bandwidth to unlimited)
+     * @param int $bandwidthUp limit upload bandwidth in Kbps (default = -1, which sets bandwidth to unlimited)
      * @return array              containing a single object with attributes of the new usergroup ("_id", "name", "qos_rate_max_down", "qos_rate_max_up", "site_id") on success
      */
-    public function create_usergroup($group_name, $group_dn = -1, $group_up = -1)
+    public function createUserGroup(string $groupName, int $bandwidthDown = -1, int $bandwidthUp = -1)
     {
-        $payload = ['name' => $group_name, 'qos_rate_max_down' => intval($group_dn), 'qos_rate_max_up' => intval($group_up)];
+        $payload = ['name' => $groupName, 'qos_rate_max_down' => $bandwidthDown, 'qos_rate_max_up' => $bandwidthUp];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/rest/usergroup', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/rest/usergroup', $payload);
     }
 
     /**
      * Modify user group (using REST)
      *
-     * @param  string $group_id   _id value of the user group
-     * @param  string $site_id    _id value of the site
-     * @param  string $group_name name of the user group
-     * @param  int    $group_dn   limit download bandwidth in Kbps (default = -1, which sets bandwidth to unlimited)
-     * @param  int    $group_up   limit upload bandwidth in Kbps (default = -1, which sets bandwidth to unlimited)
+     * @param string $groupId _id value of the user group
+     * @param string $siteId _id value of the site
+     * @param string $groupName name of the user group
+     * @param int $bandwidthDown limit download bandwidth in Kbps (default = -1, which sets bandwidth to unlimited)
+     * @param int $bandwidthUp limit upload bandwidth in Kbps (default = -1, which sets bandwidth to unlimited)
      * @return array              returns an array containing a single object with attributes of the updated usergroup on success
      */
-    public function edit_usergroup($group_id, $site_id, $group_name, $group_dn = -1, $group_up = -1)
+    public function editUserGroup(string $groupId, string $siteId, string $groupName, int $bandwidthDown = -1, int $bandwidthUp = -1)
     {
         $this->method = 'PUT';
         $payload = [
-            '_id'               => $group_id,
-            'name'              => $group_name,
-            'qos_rate_max_down' => intval($group_dn),
-            'qos_rate_max_up'   => intval($group_up),
-            'site_id'           => $site_id
+            '_id' => $groupId,
+            'name' => $groupName,
+            'qos_rate_max_down' => $bandwidthDown,
+            'qos_rate_max_up' => $bandwidthUp,
+            'site_id' => $siteId
         ];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/rest/usergroup/' . trim($group_id), $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/rest/usergroup/' . trim($groupId), $payload);
     }
 
     /**
      * Delete user group (using REST)
      *
-     * @param  string $group_id _id value of the user group to delete
+     * @param string $groupId _id value of the user group to delete
      * @return bool             returns true on success
      */
-    public function delete_usergroup($group_id)
+    public function deleteUserGroup(string $groupId): bool
     {
         $this->method = 'DELETE';
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/rest/usergroup/' . trim($group_id));
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/rest/usergroup/' . trim($groupId));
     }
 
     /**
@@ -1181,29 +1182,29 @@ class Client
      */
     public function list_apgroups()
     {
-        return $this->fetch_results('/v2/api/site/' . $this->site . '/apgroups');
+        return $this->fetchResults('/v2/api/site/' . $this->site . '/apgroups');
     }
 
     /**
      * Create AP group
      *
-     * @param  string $group_name  name to assign to the AP group
-     * @param  array  $device_macs optional, array containing the MAC addresses (strings) of the APs to add to the new group
+     * @param string $group_name name to assign to the AP group
+     * @param array $device_macs optional, array containing the MAC addresses (strings) of the APs to add to the new group
      * @return object              returns a single object with attributes of the new AP group on success
      */
     public function create_apgroup($group_name, $device_macs = [])
     {
         $payload = ['device_macs' => $device_macs, 'name' => $group_name];
 
-        return $this->fetch_results('/v2/api/site/' . $this->site . '/apgroups', $payload);
+        return $this->fetchResults('/v2/api/site/' . $this->site . '/apgroups', $payload);
     }
 
     /**
      * Modify AP group
      *
-     * @param  string $group_id    _id value of the AP group to modify
-     * @param  string $group_name  name to assign to the AP group
-     * @param  array  $device_macs array containing the members of the AP group which overwrites the existing
+     * @param string $group_id _id value of the AP group to modify
+     * @param string $group_name name to assign to the AP group
+     * @param array $device_macs array containing the members of the AP group which overwrites the existing
      *                             group_members (passing an empty array clears the AP member list)
      * @return object              returns a single object with attributes of the updated AP group on success
      */
@@ -1211,45 +1212,45 @@ class Client
     {
         $this->method = 'PUT';
         $payload = [
-            '_id'            => $group_id,
+            '_id' => $group_id,
             'attr_no_delete' => false,
-            'name'           => $group_name,
-            'device_macs'    => $device_macs
+            'name' => $group_name,
+            'device_macs' => $device_macs
         ];
 
-        return $this->fetch_results('/v2/api/site/' . $this->site . '/apgroups/' . trim($group_id), $payload);
+        return $this->fetchResults('/v2/api/site/' . $this->site . '/apgroups/' . trim($group_id), $payload);
     }
 
     /**
      * Delete AP group
      *
-     * @param  string $group_id _id value of the AP group to delete
+     * @param string $group_id _id value of the AP group to delete
      * @return bool             returns true on success
      */
     public function delete_apgroup($group_id)
     {
         $this->method = 'DELETE';
 
-        return $this->fetch_results_boolean('/v2/api/site/' . $this->site . '/apgroups/' . trim($group_id));
+        return $this->fetchResultsBoolean('/v2/api/site/' . $this->site . '/apgroups/' . trim($group_id));
     }
 
     /**
      * Fetch firewall groups (using REST)
      *
-     * @param  string $group_id optional, _id value of the single firewall group to list
+     * @param string $group_id optional, _id value of the single firewall group to list
      * @return array            containing the current firewall groups or the selected firewall group on success
      */
     public function list_firewallgroups($group_id = '')
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/rest/firewallgroup/' . trim($group_id));
+        return $this->fetchResults('/api/s/' . $this->site . '/rest/firewallgroup/' . trim($group_id));
     }
 
     /**
      * Create firewall group (using REST)
      *
-     * @param  string $group_name    name to assign to the firewall group
-     * @param  string $group_type    firewall group type; valid values are address-group, ipv6-address-group, port-group
-     * @param  array  $group_members array containing the members of the new group (IPv4 addresses, IPv6 addresses or port numbers)
+     * @param string $group_name name to assign to the firewall group
+     * @param string $group_type firewall group type; valid values are address-group, ipv6-address-group, port-group
+     * @param array $group_members array containing the members of the new group (IPv4 addresses, IPv6 addresses or port numbers)
      *                               (default is an empty array)
      * @return array                 containing a single object with attributes of the new firewall group on success
      */
@@ -1261,18 +1262,18 @@ class Client
 
         $payload = ['name' => $group_name, 'group_type' => $group_type, 'group_members' => $group_members];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/rest/firewallgroup', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/rest/firewallgroup', $payload);
     }
 
     /**
      * Modify firewall group (using REST)
      *
-     * @param  string $group_id      _id value of the firewall group to modify
-     * @param  string $site_id       site_id value of the firewall group to modify
-     * @param  string $group_name    name of the firewall group
-     * @param  string $group_type    firewall group type; valid values are address-group, ipv6-address-group, port-group,
+     * @param string $group_id _id value of the firewall group to modify
+     * @param string $site_id site_id value of the firewall group to modify
+     * @param string $group_name name of the firewall group
+     * @param string $group_type firewall group type; valid values are address-group, ipv6-address-group, port-group,
      *                               group_type cannot be changed for an existing firewall group!
-     * @param  array  $group_members array containing the members of the group (IPv4 addresses, IPv6 addresses or port numbers)
+     * @param array $group_members array containing the members of the group (IPv4 addresses, IPv6 addresses or port numbers)
      *                               which overwrites the existing group_members (default is an empty array)
      * @return array                 containing a single object with attributes of the updated firewall group on success
      */
@@ -1284,27 +1285,27 @@ class Client
 
         $this->method = 'PUT';
         $payload = [
-            '_id'           => $group_id,
-            'name'          => $group_name,
-            'group_type'    => $group_type,
+            '_id' => $group_id,
+            'name' => $group_name,
+            'group_type' => $group_type,
             'group_members' => $group_members,
-            'site_id'       => $site_id
+            'site_id' => $site_id
         ];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/rest/firewallgroup/' . trim($group_id), $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/rest/firewallgroup/' . trim($group_id), $payload);
     }
 
     /**
      * Delete firewall group (using REST)
      *
-     * @param  string $group_id _id value of the firewall group to delete
+     * @param string $groupId _id value of the firewall group to delete
      * @return bool             returns true on success
      */
-    public function delete_firewallgroup($group_id)
+    public function deleteFirewallGroup(string $groupId): bool
     {
         $this->method = 'DELETE';
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/rest/firewallgroup/' . trim($group_id));
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/rest/firewallgroup/' . trim($groupId));
     }
 
     /**
@@ -1312,20 +1313,20 @@ class Client
      *
      * @return array  containing the current firewall rules on success
      */
-    public function list_firewallrules()
+    public function listFirewallRules()
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/rest/firewallrule');
+        return $this->fetchResults('/api/s/' . $this->site . '/rest/firewallrule');
     }
 
     /**
      * Fetch static routing settings (using REST)
      *
-     * @param  string $route_id _id value of the static route to get settings for
+     * @param string $routeId _id value of the static route to get settings for
      * @return array            containing the static routes and their settings
      */
-    public function list_routing($route_id = '')
+    public function listRouting(string $routeId = '')
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/rest/routing/' . trim($route_id));
+        return $this->fetchResults('/api/s/' . $this->site . '/rest/routing/' . trim($routeId));
     }
 
     /**
@@ -1335,13 +1336,13 @@ class Client
      */
     public function list_health()
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/health');
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/health');
     }
 
     /**
      * Fetch dashboard metrics
      *
-     * @param  boolean $five_minutes when true, return stats based on 5 minute intervals,
+     * @param boolean $five_minutes when true, return stats based on 5 minute intervals,
      *                               returns hourly stats by default (supported on controller versions 5.5.* and higher)
      * @return array                 containing dashboard metric objects (available since controller version 4.9.1.alpha)
      */
@@ -1349,7 +1350,7 @@ class Client
     {
         $path_suffix = $five_minutes ? '?scale=5minutes' : null;
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/dashboard' . $path_suffix);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/dashboard' . $path_suffix);
     }
 
     /**
@@ -1359,18 +1360,18 @@ class Client
      */
     public function list_users()
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/list/user');
+        return $this->fetchResults('/api/s/' . $this->site . '/list/user');
     }
 
     /**
      * Fetch UniFi devices
      *
-     * @param  string $device_mac optional, the MAC address of a single UniFi device for which the call must be made
+     * @param string $deviceMac optional, the MAC address of a single UniFi device for which the call must be made
      * @return array              containing known UniFi device objects (or a single device when using the <device_mac> parameter)
      */
-    public function list_devices($device_mac = null)
+    public function listDevices(string $deviceMac = '')
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/device/' . strtolower(trim($device_mac)));
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/device/' . strtolower(trim($deviceMac)));
     }
 
     /**
@@ -1380,22 +1381,22 @@ class Client
      *
      * @return array  containing known device tag objects
      */
-    public function list_tags()
+    public function listTags()
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/rest/tag');
+        return $this->fetchResults('/api/s/' . $this->site . '/rest/tag');
     }
 
     /**
      * Fetch rogue/neighboring access points
      *
-     * @param  int   $within optional, hours to go back to list discovered "rogue" access points (default = 24 hours)
+     * @param int $within optional, hours to go back to list discovered "rogue" access points (default = 24 hours)
      * @return array         containing rogue/neighboring access point objects
      */
-    public function list_rogueaps($within = 24)
+    public function listRogueaps(int $within = 24)
     {
-        $payload = ['within' => intval($within)];
+        $payload = ['within' => $within];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/rogueap', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/rogueap', $payload);
     }
 
     /**
@@ -1403,9 +1404,9 @@ class Client
      *
      * @return array  containing known rogue access point objects
      */
-    public function list_known_rogueaps()
+    public function listKnownRogueAps()
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/rest/rogueknown');
+        return $this->fetchResults('/api/s/' . $this->site . '/rest/rogueknown');
     }
 
     /**
@@ -1416,11 +1417,11 @@ class Client
      *
      * @return string URL from where the backup file can be downloaded once generated
      */
-    public function generate_backup()
+    public function generateBackup()
     {
         $payload = ['cmd' => 'backup'];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/cmd/backup', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/cmd/backup', $payload);
     }
 
     /**
@@ -1432,7 +1433,7 @@ class Client
     {
         $payload = ['cmd' => 'list-backups'];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/cmd/backup', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/cmd/backup', $payload);
     }
 
     /**
@@ -1440,9 +1441,9 @@ class Client
      *
      * @return array  containing a list of sites hosted on this controller with some details
      */
-    public function list_sites()
+    public function listSites()
     {
-        return $this->fetch_results('/api/self/sites');
+        return $this->fetchResults('/api/self/sites');
     }
 
     /**
@@ -1452,34 +1453,34 @@ class Client
      *
      * @return array  containing statistics for all sites hosted on this controller
      */
-    public function stat_sites()
+    public function statSites()
     {
-        return $this->fetch_results('/api/stat/sites');
+        return $this->fetchResults('/api/stat/sites');
     }
 
     /**
      * Create a site
-     * @param  string $description the long name for the new site
+     * @param string $description the long name for the new site
      * @return array               containing a single object with attributes of the new site ("_id", "desc", "name") on success
      */
-    public function create_site($description)
+    public function createSite(string $description)
     {
         $payload = ['desc' => $description, 'cmd' => 'add-site'];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/cmd/sitemgr', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/cmd/sitemgr', $payload);
     }
 
     /**
      * Delete a site
      *
-     * @param  string $site_id _id value of the site to delete
+     * @param string $siteId _id value of the site to delete
      * @return bool            true on success
      */
-    public function delete_site($site_id)
+    public function deleteSite(string $siteId): bool
     {
-        $payload = ['site' => $site_id, 'cmd' => 'delete-site'];
+        $payload = ['site' => $siteId, 'cmd' => 'delete-site'];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/sitemgr', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/sitemgr', $payload);
     }
 
     /**
@@ -1487,130 +1488,130 @@ class Client
      *
      * NOTES: immediately after being changed, the site is available in the output of the list_sites() function
      *
-     * @param  string $site_name the new long name for the current site
+     * @param string $siteName the new long name for the current site
      * @return bool              true on success
      */
-    public function set_site_name($site_name)
+    public function setSiteName(string $siteName): bool
     {
-        $payload = ['cmd' => 'update-site', 'desc' => $site_name];
+        $payload = ['cmd' => 'update-site', 'desc' => $siteName];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/sitemgr', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/sitemgr', $payload);
     }
 
     /**
      * Update site country
      *
-     * @param  string       $country_id _id value of the country key
-     * @param  object|array $payload    stdClass object or associative array containing the configuration to apply to the site, must be a (partial)
-     *                                  object/array structured in the same manner as is returned by list_settings() for the section with the "country" key.
-     *                                  Valid country codes can be obtained using the list_country_codes() function/method.
+     * @param string $countryId _id value of the country key
+     * @param object|array $payload stdClass object or associative array containing the configuration to apply to the site, must be a (partial)
+     *                                  object/array structured in the same manner as is returned by listSettings() for the section with the "country" key.
+     *                                  Valid country codes can be obtained using the listCountryCodes() function/method.
      *                                  Do not include the _id property, it is assigned by the controller and returned upon success.
      * @return bool                     true on success
      */
-    public function set_site_country($country_id, $payload)
+    public function setSiteCountry(string $countryId, $payload): bool
     {
         $this->method = 'PUT';
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/rest/setting/country/' . trim($country_id), $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/rest/setting/country/' . trim($countryId), $payload);
     }
 
     /**
      * Update site locale
      *
-     * @param  string       $locale_id _id value of the locale section
-     * @param  object|array $payload   stdClass object or associative array containing the configuration to apply to the site, must be a (partial)
-     *                                 object/array structured in the same manner as is returned by list_settings() for section with the the "locale" key.
+     * @param string $localeId _id value of the locale section
+     * @param object|array $payload stdClass object or associative array containing the configuration to apply to the site, must be a (partial)
+     *                                 object/array structured in the same manner as is returned by listSettings() for section with the the "locale" key.
      *                                 Valid timezones can be obtained in Javascript as explained here:
      *                                 https://stackoverflow.com/questions/38399465/how-to-get-list-of-all-timezones-in-javascript
      *                                 or in PHP using timezone_identifiers_list().
      *                                 Do not include the _id property, it is assigned by the controller and returned upon success.
      * @return bool                    true on success
      */
-    public function set_site_locale($locale_id, $payload)
+    public function setSiteLocale(string $localeId, $payload): bool
     {
         $this->method = 'PUT';
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/rest/setting/locale/' . trim($locale_id), $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/rest/setting/locale/' . trim($localeId), $payload);
     }
 
     /**
      * Update site snmp
      *
-     * @param  string       $snmp_id _id value of the snmp section
-     * @param  object|array $payload stdClass object or associative array containing the configuration to apply to the site, must be a (partial)
-     *                               object/array structured in the same manner as is returned by list_settings() for the section with the "snmp" key.
+     * @param string $snmpId _id value of the snmp section
+     * @param object|array $payload stdClass object or associative array containing the configuration to apply to the site, must be a (partial)
+     *                               object/array structured in the same manner as is returned by listSettings() for the section with the "snmp" key.
      *                               Do not include the _id property, it is assigned by the controller and returned upon success.
      * @return bool                  true on success
      */
-    public function set_site_snmp($snmp_id, $payload)
+    public function setSiteSnmp(string $snmpId, $payload): bool
     {
         $this->method = 'PUT';
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/rest/setting/snmp/' . trim($snmp_id), $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/rest/setting/snmp/' . trim($snmpId), $payload);
     }
 
     /**
      * Update site mgmt
      *
-     * @param  string       $mgmt_id _id value of the mgmt section
-     * @param  object|array $payload stdClass object or associative array containing the configuration to apply to the site, must be a (partial)
-     *                               object/array structured in the same manner as is returned by list_settings() for the section with the "mgmt" key.
+     * @param string $mgmtId _id value of the mgmt section
+     * @param object|array $payload stdClass object or associative array containing the configuration to apply to the site, must be a (partial)
+     *                               object/array structured in the same manner as is returned by listSettings() for the section with the "mgmt" key.
      *                               Do not include the _id property, it is assigned by the controller and returned upon success.
      * @return bool                  true on success
      */
-    public function set_site_mgmt($mgmt_id, $payload)
+    public function setSiteMgmt(string $mgmtId, $payload): bool
     {
         $this->method = 'PUT';
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/rest/setting/mgmt/' . trim($mgmt_id), $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/rest/setting/mgmt/' . trim($mgmtId), $payload);
     }
 
     /**
      * Update site guest access
      *
-     * @param string       $guest_access_id _id value of the guest_access section
-     * @param object|array $payload         stdClass object or associative array containing the configuration to apply to the site, must be a (partial)
-     *                                      object/array structured in the same manner as is returned by list_settings() for the section with the "guest_access" key.
+     * @param string $guestAccessId _id value of the guest_access section
+     * @param object|array $payload stdClass object or associative array containing the configuration to apply to the site, must be a (partial)
+     *                                      object/array structured in the same manner as is returned by listSettings() for the section with the "guest_access" key.
      *                                      Do not include the _id property, it is assigned by the controller and returned upon success.
      * @return bool                         true on success
      */
-    public function set_site_guest_access($guest_access_id, $payload)
+    public function setSiteGuestAccess(string $guestAccessId, $payload): bool
     {
         $this->method = 'PUT';
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/rest/setting/guest_access/' . trim($guest_access_id), $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/rest/setting/guest_access/' . trim($guestAccessId), $payload);
     }
 
     /**
      * Update site ntp
      *
-     * @param  string       $ntp_id  _id value of the ntp section
-     * @param  object|array $payload stdClass object or associative array containing the configuration to apply to the site, must be a (partial)
-     *                               object/array structured in the same manner as is returned by list_settings() for the section with the "ntp" key.
+     * @param string $ntpId _id value of the ntp section
+     * @param object|array $payload stdClass object or associative array containing the configuration to apply to the site, must be a (partial)
+     *                               object/array structured in the same manner as is returned by listSettings() for the section with the "ntp" key.
      *                               Do not include the _id property, it is assigned by the controller and returned upon success.
      * @return bool                  true on success
      */
-    public function set_site_ntp($ntp_id, $payload)
+    public function setSiteNtp(string $ntpId, $payload): bool
     {
         $this->method = 'PUT';
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/rest/setting/ntp/' . trim($ntp_id), $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/rest/setting/ntp/' . trim($ntpId), $payload);
     }
 
     /**
      * Update site connectivity
      *
-     * @param  string       $connectivity_id _id value of the connectivity section
-     * @param  object|array $payload         stdClass object or associative array containing the configuration to apply to the site, must be a (partial)
-     *                                       object/array structured in the same manner as is returned by list_settings() for the section with the "connectivity" key.
+     * @param string $connectivityId _id value of the connectivity section
+     * @param object|array $payload stdClass object or associative array containing the configuration to apply to the site, must be a (partial)
+     *                                       object/array structured in the same manner as is returned by listSettings() for the section with the "connectivity" key.
      *                                       Do not include the _id property, it is assigned by the controller and returned upon success.
      * @return bool                          true on success
      */
-    public function set_site_connectivity($connectivity_id, $payload)
+    public function setSiteConnectivity(string $connectivityId, $payload): bool
     {
         $this->method = 'PUT';
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/rest/setting/connectivity/' . trim($connectivity_id), $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/rest/setting/connectivity/' . trim($connectivityId), $payload);
     }
 
     /**
@@ -1618,11 +1619,11 @@ class Client
      *
      * @return array  containing administrator objects for selected site
      */
-    public function list_admins()
+    public function listAdmins()
     {
         $payload = ['cmd' => 'get-admins'];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/cmd/sitemgr', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/cmd/sitemgr', $payload);
     }
 
     /**
@@ -1630,9 +1631,9 @@ class Client
      *
      * @return array  containing administrator objects for all sites
      */
-    public function list_all_admins()
+    public function listAllAdmins()
     {
-        return $this->fetch_results('/api/stat/admin');
+        return $this->fetchResults('/api/stat/admin');
     }
 
     /**
@@ -1642,42 +1643,43 @@ class Client
      * - after issuing a valid request, an invite is sent to the email address provided
      * - issuing this command against an existing admin triggers a "re-invite"
      *
-     * @param  string $name           name to assign to the new admin user
-     * @param  string $email          email address to assign to the new admin user
-     * @param  bool   $enable_sso     optional, whether or not SSO is allowed for the new admin
+     * @param string $name name to assign to the new admin user
+     * @param string $email email address to assign to the new admin user
+     * @param bool $enableSso optional, whether or not SSO is allowed for the new admin
      *                                default value is true which enables the SSO capability
-     * @param  bool   $readonly       optional, whether or not the new admin has readonly
+     * @param bool $readonly optional, whether or not the new admin has readonly
      *                                permissions, default value is false which gives the new admin
      *                                Administrator permissions
-     * @param  bool   $device_adopt   optional, whether or not the new admin has permissions to
+     * @param bool $deviceAdopt optional, whether or not the new admin has permissions to
      *                                adopt devices, default value is false. With versions < 5.9.X this only applies
      *                                when readonly is true.
-     * @param  bool   $device_restart optional, whether or not the new admin has permissions to
+     * @param bool $deviceRestart optional, whether or not the new admin has permissions to
      *                                restart devices, default value is false. With versions < 5.9.X this only applies
      *                                when readonly is true.
      * @return bool                   true on success
      */
-    public function invite_admin(
-        $name,
-        $email,
-        $enable_sso     = true,
-        $readonly       = false,
-        $device_adopt   = false,
-        $device_restart = false
-    ) {
-        $email_valid = filter_var(trim($email), FILTER_VALIDATE_EMAIL);
-        if (!$email_valid) {
+    public function inviteAdmin(
+        string $name,
+        string $email,
+        bool   $enableSso = true,
+        bool   $readonly = false,
+        bool   $deviceAdopt = false,
+        bool   $deviceRestart = false
+    ): bool
+    {
+        $emailValid = filter_var(trim($email), FILTER_VALIDATE_EMAIL);
+        if (!$emailValid) {
             trigger_error('The email address provided is invalid!');
 
             return false;
         }
 
         $payload = [
-            'name'        => trim($name),
-            'email'       => trim($email),
-            'for_sso'     => $enable_sso,
-            'cmd'         => 'invite-admin',
-            'role'        => 'admin',
+            'name' => trim($name),
+            'email' => trim($email),
+            'for_sso' => $enableSso,
+            'cmd' => 'invite-admin',
+            'role' => 'admin',
             'permissions' => []
         ];
 
@@ -1685,39 +1687,39 @@ class Client
             $payload['role'] = 'readonly';
         }
 
-        if ($device_adopt) {
+        if ($deviceAdopt) {
             $payload['permissions'][] = 'API_DEVICE_ADOPT';
         }
 
-        if ($device_restart) {
+        if ($deviceRestart) {
             $payload['permissions'][] = 'API_DEVICE_RESTART';
         }
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/sitemgr', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/sitemgr', $payload);
     }
 
     /**
      * Assign an existing admin to the current site
      *
-     * @param  string $admin_id       _id value of the admin user to assign, can be obtained using the
+     * @param string $adminId _id value of the admin user to assign, can be obtained using the
      *                                list_all_admins() method/function
-     * @param  bool   $readonly       optional, whether or not the new admin has readonly
+     * @param bool $readonly optional, whether or not the new admin has readonly
      *                                permissions, default value is false which gives the new admin
      *                                Administrator permissions
-     * @param  bool   $device_adopt   optional, whether or not the new admin has permissions to
+     * @param bool $deviceAdopt optional, whether or not the new admin has permissions to
      *                                adopt devices, default value is false. With versions < 5.9.X this only applies
      *                                when readonly is true.
-     * @param  bool   $device_restart optional, whether or not the new admin has permissions to
+     * @param bool $deviceRestart optional, whether or not the new admin has permissions to
      *                                restart devices, default value is false. With versions < 5.9.X this only applies
      *                                when readonly is true.
      * @return bool                   true on success
      */
-    public function assign_existing_admin($admin_id, $readonly = false, $device_adopt = false, $device_restart = false)
+    public function assignExistingAdmin(string $adminId, bool $readonly = false, bool $deviceAdopt = false, bool $deviceRestart = false)
     {
         $payload = [
-            'cmd'         => 'grant-admin',
-            'admin'       => trim($admin_id),
-            'role'        => 'admin',
+            'cmd' => 'grant-admin',
+            'admin' => trim($adminId),
+            'role' => 'admin',
             'permissions' => []
         ];
 
@@ -1725,15 +1727,15 @@ class Client
             $payload['role'] = 'readonly';
         }
 
-        if ($device_adopt) {
+        if ($deviceAdopt) {
             $payload['permissions'][] = 'API_DEVICE_ADOPT';
         }
 
-        if ($device_restart) {
+        if ($deviceRestart) {
             $payload['permissions'][] = 'API_DEVICE_RESTART';
         }
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/sitemgr', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/sitemgr', $payload);
     }
 
     /**
@@ -1742,15 +1744,15 @@ class Client
      * NOTES:
      * only non-superadmin accounts can be revoked
      *
-     * @param  string $admin_id _id value of the admin to revoke, can be obtained using the
+     * @param string $adminId _id value of the admin to revoke, can be obtained using the
      *                          list_all_admins() method/function
      * @return bool             true on success
      */
-    public function revoke_admin($admin_id)
+    public function revokeAdmin(string $adminId): bool
     {
-        $payload = ['cmd' => 'revoke-admin', 'admin' => $admin_id];
+        $payload = ['cmd' => 'revoke-admin', 'admin' => $adminId];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/sitemgr', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/sitemgr', $payload);
     }
 
     /**
@@ -1758,9 +1760,9 @@ class Client
      *
      * @return array  containing known wlan_groups
      */
-    public function list_wlan_groups()
+    public function listWlanGroups()
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/list/wlangroup');
+        return $this->fetchResults('/api/s/' . $this->site . '/list/wlangroup');
     }
 
     /**
@@ -1768,9 +1770,9 @@ class Client
      *
      * @return array  containing known sysinfo data
      */
-    public function stat_sysinfo()
+    public function statSysinfo()
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/sysinfo');
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/sysinfo');
     }
 
     /**
@@ -1781,9 +1783,9 @@ class Client
      *
      * @return bool true upon success (controller is online)
      */
-    public function stat_status()
+    public function statStatus(): bool
     {
-        return $this->fetch_results_boolean('/status', null, false);
+        return $this->fetchResultsBoolean('/status', null, false);
     }
 
     /**
@@ -1794,11 +1796,11 @@ class Client
      *
      * @return bool|array  staus array upon success, false upon failure
      */
-    public function stat_full_status()
+    public function statFullStatus()
     {
-        $this->fetch_results_boolean('/status', null, false);
+        $this->fetchResultsBoolean('/status', null, false);
 
-        return json_decode($this->get_last_results_raw());
+        return json_decode($this->getLastResultsRaw());
     }
 
     /**
@@ -1809,11 +1811,11 @@ class Client
      *
      * @return bool|array  mappings array upon success, false upon failure
      */
-    public function list_device_name_mappings()
+    public function listDeviceNameMappings()
     {
-        $this->fetch_results_boolean('/dl/firmware/bundles.json', null, false);
+        $this->fetchResultsBoolean('/dl/firmware/bundles.json', null, false);
 
-        return json_decode($this->get_last_results_raw());
+        return json_decode($this->getLastResultsRaw());
     }
 
     /**
@@ -1821,53 +1823,53 @@ class Client
      *
      * @return array  containing information about the logged in user
      */
-    public function list_self()
+    public function listSelf()
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/self');
+        return $this->fetchResults('/api/s/' . $this->site . '/self');
     }
 
     /**
      * Fetch vouchers
      *
-     * @param  int   $create_time optional, create time of the vouchers to fetch in Unix timestamp in seconds
+     * @param int $createTime optional, create time of the vouchers to fetch in Unix timestamp in seconds
      * @return array              containing hotspot voucher objects
      */
-    public function stat_voucher($create_time = null)
+    public function statVoucher(int $createTime = 0)
     {
-        $payload = isset($create_time) ? ['create_time' => intval($create_time)] : [];
+        $payload = $createTime !== 0 ? ['create_time' => $createTime] : [];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/voucher', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/voucher', $payload);
     }
 
     /**
      * Fetch payments
      *
-     * @param  int   $within optional, number of hours to go back to fetch payments
+     * @param int $within optional, number of hours to go back to fetch payments
      * @return array         containing hotspot payments
      */
-    public function stat_payment($within = null)
+    public function statPayment(int $within = 0)
     {
-        $path_suffix = isset($within) ? '?within=' . intval($within) : '';
+        $path_suffix = $within !== 0 ? '?within=' . $within : '';
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/payment' . $path_suffix);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/payment' . $path_suffix);
     }
 
     /**
      * Create hotspot operator (using REST)
      *
-     * @param  string $name       name for the hotspot operator
-     * @param  string $x_password clear text password for the hotspot operator
-     * @param  string $note       optional, note to attach to the hotspot operator
+     * @param string $name name for the hotspot operator
+     * @param string $password clear text password for the hotspot operator
+     * @param string $note optional, note to attach to the hotspot operator
      * @return bool               true upon success
      */
-    public function create_hotspotop($name, $x_password, $note = null)
+    public function createHotspotOp(string $name, string $password, string $note = ''): bool
     {
-        $payload = ['name' => $name, 'x_password' => $x_password];
+        $payload = ['name' => $name, 'x_password' => $password];
         if (!isset($note)) {
             $payload['note'] = trim($note);
         }
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/rest/hotspotop', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/rest/hotspotop', $payload);
     }
 
     /**
@@ -1875,9 +1877,9 @@ class Client
      *
      * @return array  containing hotspot operators
      */
-    public function list_hotspotop()
+    public function listHotspotOp()
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/rest/hotspotop');
+        return $this->fetchResults('/api/s/' . $this->site . '/rest/hotspotop');
     }
 
     /**
@@ -1885,30 +1887,31 @@ class Client
      *
      * NOTES: please use the stat_voucher() method/function to retrieve the newly created voucher(s) by create_time
      *
-     * @param  int    $minutes   minutes the voucher is valid after activation (expiration time)
-     * @param  int    $count     number of vouchers to create, default value is 1
-     * @param  int    $quota     single-use or multi-use vouchers, value '0' is for multi-use, '1' is for single-use,
+     * @param int $minutes minutes the voucher is valid after activation (expiration time)
+     * @param int $count number of vouchers to create, default value is 1
+     * @param int $quota single-use or multi-use vouchers, value '0' is for multi-use, '1' is for single-use,
      *                           'n' is for multi-use n times
-     * @param  string $note      note text to add to voucher when printing
-     * @param  int    $up        upload speed limit in kbps
-     * @param  int    $down      download speed limit in kbps
-     * @param  int    $megabytes data transfer limit in MB
+     * @param string $note note text to add to voucher when printing
+     * @param int|null $up upload speed limit in kbps
+     * @param int|null $down download speed limit in kbps
+     * @param int|null $megabytes data transfer limit in MB
      * @return array             containing a single object which contains the create_time(stamp) of the voucher(s) created
      */
-    public function create_voucher(
-        $minutes,
-        $count     = 1,
-        $quota     = 0,
-        $note      = null,
-        $up        = null,
-        $down      = null,
-        $megabytes = null
-    ) {
+    public function createVoucher(
+        int $minutes,
+        int $count = 1,
+        int $quota = 0,
+        string $note = '',
+        ?int $up = null,
+        ?int $down = null,
+        ?int $megabytes = null
+    )
+    {
         $payload = [
-            'cmd'    => 'create-voucher',
-            'expire' => intval($minutes),
-            'n'      => intval($count),
-            'quota'  => intval($quota)
+            'cmd' => 'create-voucher',
+            'expire' => $minutes,
+            'n' => $count,
+            'quota' => $quota
         ];
 
         if (!is_null($note)) {
@@ -1916,44 +1919,44 @@ class Client
         }
 
         if (!is_null($up)) {
-            $payload['up'] = intval($up);
+            $payload['up'] = $up;
         }
 
         if (!is_null($down)) {
-            $payload['down'] = intval($down);
+            $payload['down'] = $down;
         }
 
         if (!is_null($megabytes)) {
-            $payload['bytes'] = intval($megabytes);
+            $payload['bytes'] = $megabytes;
         }
 
-        return $this->fetch_results('/api/s/' . $this->site . '/cmd/hotspot', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/cmd/hotspot', $payload);
     }
 
     /**
      * Revoke voucher
      *
-     * @param  string $voucher_id _id value of the voucher to revoke
+     * @param string $voucherId _id value of the voucher to revoke
      * @return bool               true on success
      */
-    public function revoke_voucher($voucher_id)
+    public function revokeVoucher(string $voucherId): bool
     {
-        $payload = ['_id' => $voucher_id, 'cmd' => 'delete-voucher'];
+        $payload = ['_id' => $voucherId, 'cmd' => 'delete-voucher'];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/hotspot', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/hotspot', $payload);
     }
 
     /**
      * Extend guest authorization
      *
-     * @param  string $guest_id _id value of the guest to extend the authorization for
+     * @param string $guestId _id value of the guest to extend the authorization for
      * @return bool             true on success
      */
-    public function extend_guest_validity($guest_id)
+    public function extendGuestValidity(string $guestId): bool
     {
-        $payload = ['_id' => $guest_id, 'cmd' => 'extend'];
+        $payload = ['_id' => $guestId, 'cmd' => 'extend'];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/hotspot', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/hotspot', $payload);
     }
 
     /**
@@ -1961,9 +1964,9 @@ class Client
      *
      * @return array  containing port forwarding stats
      */
-    public function list_portforward_stats()
+    public function listPortForwardStats()
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/portforward');
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/portforward');
     }
 
     /**
@@ -1971,21 +1974,21 @@ class Client
      *
      * @return array  containing DPI stats
      */
-    public function list_dpi_stats()
+    public function listDpiStats()
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/dpi');
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/dpi');
     }
 
     /**
      * Fetch filtered DPI stats
      *
-     * @param  string $type       optional, whether to returns stats by app or by category, valid values:
+     * @param string $type optional, whether to returns stats by app or by category, valid values:
      *                            'by_cat' or 'by_app'
-     * @param  array  $cat_filter optional, array containing numeric category ids to filter by,
+     * @param array $catFilter optional, array containing numeric category ids to filter by,
      *                            only to be combined with a "by_app" value for $type
      * @return array              containing filtered DPI stats
      */
-    public function list_dpi_stats_filtered($type = 'by_cat', $cat_filter = null)
+    public function listDpiStatsFiltered(string $type = 'by_cat', array $catFilter = [])
     {
         if (!in_array($type, ['by_cat', 'by_app'])) {
             return false;
@@ -1993,11 +1996,11 @@ class Client
 
         $payload = ['type' => $type];
 
-        if (!is_null($cat_filter) && $type == 'by_app' && is_array($cat_filter)) {
-            $payload['cats'] = $cat_filter;
+        if (!empty($catFilter) && $type === 'by_app') {
+            $payload['cats'] = $catFilter;
         }
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/sitedpi', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/sitedpi', $payload);
     }
 
     /**
@@ -2005,9 +2008,9 @@ class Client
      *
      * @return array  containing currently allowed channels
      */
-    public function list_current_channels()
+    public function listCurrentChannels()
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/current-channel');
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/current-channel');
     }
 
     /**
@@ -2019,9 +2022,9 @@ class Client
      *
      * @return array  containing available country codes
      */
-    public function list_country_codes()
+    public function listCountryCodes()
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/ccode');
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/ccode');
     }
 
     /**
@@ -2029,9 +2032,9 @@ class Client
      *
      * @return array  containing port forwarding settings
      */
-    public function list_portforwarding()
+    public function listPortForwarding()
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/list/portforward');
+        return $this->fetchResults('/api/s/' . $this->site . '/list/portforward');
     }
 
     /**
@@ -2039,9 +2042,9 @@ class Client
      *
      * @return array  containing port configurations
      */
-    public function list_portconf()
+    public function listPortConf()
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/list/portconf');
+        return $this->fetchResults('/api/s/' . $this->site . '/list/portconf');
     }
 
     /**
@@ -2049,9 +2052,9 @@ class Client
      *
      * @return array  containing VoIP extensions
      */
-    public function list_extension()
+    public function listExtension()
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/list/extension');
+        return $this->fetchResults('/api/s/' . $this->site . '/list/extension');
     }
 
     /**
@@ -2059,56 +2062,56 @@ class Client
      *
      * @return array  containing site configuration settings
      */
-    public function list_settings()
+    public function listSettings()
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/get/setting');
+        return $this->fetchResults('/api/s/' . $this->site . '/get/setting');
     }
 
     /**
      * Adopt a device to the selected site
      *
-     * @param  string $mac device MAC address
+     * @param string $mac device MAC address
      * @return bool        true on success
      */
-    public function adopt_device($mac)
+    public function adoptDevice(string $mac): bool
     {
         $payload = ['mac' => strtolower($mac), 'cmd' => 'adopt'];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/devmgr', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/devmgr', $payload);
     }
 
     /**
      * Reboot a device
      *
-     * @param  string $mac         device MAC address
-     * @param  string $reboot_type optional, two options: 'soft' or 'hard', defaults to soft
+     * @param string $mac device MAC address
+     * @param string $rebootType optional, two options: 'soft' or 'hard', defaults to soft
      *                             soft can be used for all devices, requests a plain restart of that device
      *                             hard is special for PoE switches and besides the restart also requests a
      *                             power cycle on all PoE capable ports. Keep in mind that a 'hard' reboot
      *                             does *NOT* trigger a factory-reset.
      * @return bool                true on success
      */
-    public function restart_device($mac, $reboot_type = 'soft')
+    public function restartDevice(string $mac, string $rebootType = 'soft'): bool
     {
         $payload = ['cmd' => 'restart', 'mac' => strtolower($mac)];
-        if (!empty($reboot_type) && in_array($reboot_type, ['soft', 'hard'])) {
-            $payload['reboot_type'] = strtolower($reboot_type);
+        if (!empty($rebootType) && in_array($rebootType, ['soft', 'hard'])) {
+            $payload['reboot_type'] = strtolower($rebootType);
         }
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/devmgr', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/devmgr', $payload);
     }
 
     /**
      * Force provision of a device
      *
-     * @param  string $mac device MAC address
+     * @param string $mac device MAC address
      * @return bool        true on success
      */
-    public function force_provision($mac)
+    public function forceProvision(string $mac): bool
     {
         $payload = ['mac' => strtolower($mac), 'cmd' => 'force-provision'];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/devmgr', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/devmgr', $payload);
     }
 
     /**
@@ -2119,11 +2122,11 @@ class Client
      *
      * @return bool true on success
      */
-    public function reboot_cloudkey()
+    public function rebootCloudKey(): bool
     {
         $payload = ['cmd' => 'reboot'];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/system', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/system', $payload);
     }
 
     /**
@@ -2134,20 +2137,16 @@ class Client
      * - appears to only be supported for access points
      * - available since controller versions 5.2.X
      *
-     * @param  string $ap_id   value of _id for the access point which can be obtained from the device list
-     * @param  bool   $disable true disables the device, false enables the device
+     * @param string $apId value of _id for the access point which can be obtained from the device list
+     * @param bool $disable true disables the device, false enables the device
      * @return bool            true on success
      */
-    public function disable_ap($ap_id, $disable)
+    public function disableAp(string $apId, bool $disable): bool
     {
-        if (!is_bool($disable)) {
-            return false;
-        }
-
         $this->method = 'PUT';
-        $payload      = ['disabled' => $disable];
+        $payload = ['disabled' => $disable];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/rest/device/' . trim($ap_id), $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/rest/device/' . trim($apId), $payload);
     }
 
     /**
@@ -2156,22 +2155,22 @@ class Client
      * NOTES:
      * - available since controller versions 5.2.X
      *
-     * @param  string $device_id     value of _id for the device which can be obtained from the device list
-     * @param  string $override_mode off/on/default; "off" disables the LED of the device,
+     * @param string $deviceId value of _id for the device which can be obtained from the device list
+     * @param string $overrideMode off/on/default; "off" disables the LED of the device,
      *                               "on" enables the LED of the device,
      *                               "default" applies the site-wide setting for device LEDs
      * @return bool                  true on success
      */
-    public function led_override($device_id, $override_mode)
+    public function ledOverride(string $deviceId, string $overrideMode): bool
     {
-        if (!in_array($override_mode, ['off', 'on', 'default'])) {
+        if (!in_array($overrideMode, ['off', 'on', 'default'])) {
             return false;
         }
 
         $this->method = 'PUT';
-        $payload      = ['led_override' => $override_mode];
+        $payload = ['led_override' => $overrideMode];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/rest/device/' . trim($device_id), $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/rest/device/' . trim($deviceId), $payload);
     }
 
     /**
@@ -2180,37 +2179,29 @@ class Client
      * NOTES:
      * replaces the old set_locate_ap() and unset_locate_ap() methods/functions
      *
-     * @param  string $mac    device MAC address
-     * @param  bool   $enable true enables flashing LED, false disables flashing LED
+     * @param string $mac device MAC address
+     * @param bool $enable true enables flashing LED, false disables flashing LED
      * @return bool           true on success
      */
-    public function locate_ap($mac, $enable)
+    public function locateAp(string $mac, bool $enable): bool
     {
-        if (!is_bool($enable)) {
-            return false;
-        }
-
-        $cmd     = $enable ? 'set-locate' : 'unset-locate';
+        $cmd = $enable ? 'set-locate' : 'unset-locate';
         $payload = ['cmd' => $cmd, 'mac' => strtolower($mac)];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/devmgr', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/devmgr', $payload);
     }
 
     /**
      * Toggle LEDs of all the access points ON or OFF
      *
-     * @param  bool $enable true switches LEDs of all the access points ON, false switches them OFF
+     * @param bool $enable true switches LEDs of all the access points ON, false switches them OFF
      * @return bool         true on success
      */
-    public function site_leds($enable)
+    public function siteLeds(bool $enable): bool
     {
-        if (!is_bool($enable)) {
-            return false;
-        }
-
         $payload = ['led_enabled' => $enable];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/set/setting/mgmt', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/set/setting/mgmt', $payload);
     }
 
     /**
@@ -2219,49 +2210,49 @@ class Client
      * NOTES:
      * - only supported on pre-5.X.X controller versions
      *
-     * @param  string  $ap_id         the "_id" value for the access point you wish to update
-     * @param  string  $radio         radio to update, default=ng
-     * @param  int     $channel       channel to apply
-     * @param  int     $ht            channel width, default=20
-     * @param  string  $tx_power_mode power level, "low", "medium", or "high"
-     * @param  int     $tx_power      transmit power level, default=0
+     * @param string $apId the "_id" value for the access point you wish to update
+     * @param string $radio radio to update, default=ng
+     * @param int $channel channel to apply
+     * @param int $ht channel width, default=20
+     * @param string $txPowerMode power level, "low", "medium", or "high"
+     * @param int $txPower transmit power level, default=0
      * @return bool                   true on success
      */
-    public function set_ap_radiosettings($ap_id, $radio, $channel, $ht, $tx_power_mode, $tx_power)
+    public function setApRadioSettings(string $apId, string $radio, int $channel, int $ht, string $txPowerMode, int $txPower): bool
     {
         $payload = [
             'radio_table' => [
-                'radio'         => $radio,
-                'channel'       => $channel,
-                'ht'            => $ht,
-                'tx_power_mode' => $tx_power_mode,
-                'tx_power'      => $tx_power
+                'radio' => $radio,
+                'channel' => $channel,
+                'ht' => $ht,
+                'tx_power_mode' => $txPowerMode,
+                'tx_power' => $txPower
             ]
         ];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/upd/device/' . trim($ap_id), $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/upd/device/' . trim($apId), $payload);
     }
 
     /**
      * Assign access point to another WLAN group
      *
-     * @param  string $type_id   WLAN type, can be either 'ng' (for WLANs 2G (11n/b/g)) or 'na' (WLANs 5G (11n/a/ac))
-     * @param  string $device_id _id value of the access point to be modified
-     * @param  string $group_id  _id value of the WLAN group to assign device to
+     * @param string $typeId WLAN type, can be either 'ng' (for WLANs 2G (11n/b/g)) or 'na' (WLANs 5G (11n/a/ac))
+     * @param string $deviceId _id value of the access point to be modified
+     * @param string $groupId _id value of the WLAN group to assign device to
      * @return bool              true on success
      */
-    public function set_ap_wlangroup($type_id, $device_id, $group_id)
+    public function setApWlanGroup(string $typeId, string $deviceId, string $groupId): bool
     {
-        if (!in_array($type_id, ['ng', 'na'])) {
+        if (!in_array($typeId, ['ng', 'na'])) {
             return false;
         }
 
         $payload = [
-            'wlan_overrides'           => [],
-            'wlangroup_id_' . $type_id => $group_id
+            'wlan_overrides' => [],
+            'wlangroup_id_' . $typeId => $groupId
         ];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/upd/device/' . trim($device_id), $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/upd/device/' . trim($deviceId), $payload);
     }
 
     /**
@@ -2270,15 +2261,15 @@ class Client
      * NOTES:
      * - both portal parameters are set to the same value!
      *
-     * @param  bool    $portal_enabled    enable/disable the captive portal
-     * @param  bool    $portal_customized enable/disable captive portal customizations
-     * @param  bool    $redirect_enabled  enable/disable captive portal redirect
-     * @param  string  $redirect_url      url to redirect to, must include the http/https prefix, no trailing slashes
-     * @param  string  $x_password        the captive portal (simple) password
-     * @param  int     $expire_number     number of units for the authorization expiry
-     * @param  int     $expire_unit       number of minutes within a unit (a value 60 is required for hours)
-     * @param  string  $section_id        value of _id for the site settings section where key = "guest_access", settings can be obtained
-     *                                    using the list_settings() function
+     * @param bool $portal_enabled enable/disable the captive portal
+     * @param bool $portal_customized enable/disable captive portal customizations
+     * @param bool $redirect_enabled enable/disable captive portal redirect
+     * @param string $redirect_url url to redirect to, must include the http/https prefix, no trailing slashes
+     * @param string $x_password the captive portal (simple) password
+     * @param int $expire_number number of units for the authorization expiry
+     * @param int $expire_unit number of minutes within a unit (a value 60 is required for hours)
+     * @param string $section_id value of _id for the site settings section where key = "guest_access", settings can be obtained
+     *                                    using the listSettings() function
      * @return bool                       true on success
      */
     public function set_guestlogin_settings(
@@ -2290,130 +2281,132 @@ class Client
         $expire_number,
         $expire_unit,
         $section_id
-    ) {
+    ): bool
+    {
         $payload = [
-            'portal_enabled'    => $portal_enabled,
+            'portal_enabled' => $portal_enabled,
             'portal_customized' => $portal_customized,
-            'redirect_enabled'  => $redirect_enabled,
-            'redirect_url'      => $redirect_url,
-            'x_password'        => $x_password,
-            'expire_number'     => $expire_number,
-            'expire_unit'       => $expire_unit,
-            '_id'               => $section_id
+            'redirect_enabled' => $redirect_enabled,
+            'redirect_url' => $redirect_url,
+            'x_password' => $x_password,
+            'expire_number' => $expire_number,
+            'expire_unit' => $expire_unit,
+            '_id' => $section_id
         ];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/set/setting/guest_access/' . $section_id, $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/set/setting/guest_access/' . $section_id, $payload);
     }
 
     /**
      * Update guest login settings, base
      *
-     * @param  object|array $payload stdClass object or associative array containing the configuration to apply to the guest login, must be a (partial)
-     *                               object/array structured in the same manner as is returned by list_settings() for the "guest_access" section.
+     * @param object|array $payload stdClass object or associative array containing the configuration to apply to the guest login, must be a (partial)
+     *                               object/array structured in the same manner as is returned by listSettings() for the "guest_access" section.
+     * @param string $sectionId
      * @return bool                  true on success
      */
-    public function set_guestlogin_settings_base($payload, $section_id = '')
+    public function setGuestLoginSettingsBase($payload, string $sectionId = ''): bool
     {
-        if (!empty($section_id)) {
-            $section_id = '/' . $section_id;
+        if ($sectionId === '') {
+            $sectionId = '/' . $sectionId;
         }
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/set/setting/guest_access' . $section_id, $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/set/setting/guest_access' . $sectionId, $payload);
     }
 
     /**
      * Update IPS/IDS settings, base
      *
-     * @param  object|array $payload stdClass object or associative array containing the IPS/IDS settings to apply, must be a (partial)
-     *                               object/array structured in the same manner as is returned by list_settings() for the "ips" section.
+     * @param object|array $payload stdClass object or associative array containing the IPS/IDS settings to apply, must be a (partial)
+     *                               object/array structured in the same manner as is returned by listSettings() for the "ips" section.
      * @return bool                  true on success
      */
-    public function set_ips_settings_base($payload)
+    public function setIpsSettingsBase($payload): bool
     {
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/set/setting/ips', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/set/setting/ips', $payload);
     }
 
     /**
      * Update "Super Management" settings, base
      *
-     * @param  string       $settings_id value of _id for the site settings section where key = "super_mgmt", settings can be obtained
-     *                                   using the list_settings() function
-     * @param  object|array $payload     stdClass object or associative array containing the "Super Management" settings to apply, must be a (partial)
-     *                                   object/array structured in the same manner as is returned by list_settings() for the "super_mgmt" section.
+     * @param string $settingsId value of _id for the site settings section where key = "super_mgmt", settings can be obtained
+     *                                   using the listSettings() function
+     * @param object|array $payload stdClass object or associative array containing the "Super Management" settings to apply, must be a (partial)
+     *                                   object/array structured in the same manner as is returned by listSettings() for the "super_mgmt" section.
      * @return bool                      true on success
      */
-    public function set_super_mgmt_settings_base($settings_id, $payload)
+    public function setSuperMgmtSettingsBase(string $settingsId, $payload): bool
     {
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/set/setting/super_mgmt/' . trim($settings_id), $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/set/setting/super_mgmt/' . trim($settingsId), $payload);
     }
 
     /**
      * Update "Super SMTP" settings, base
      *
-     * @param  string       $settings_id value of _id for the site settings section where key = "super_smtp", settings can be obtained
-     *                                   using the list_settings() function
-     * @param  object|array $payload     stdClass object or associative array containing the "Super SMTP" settings to apply, must be a (partial)
-     *                                   object/array structured in the same manner as is returned by list_settings() for the "super_smtp" section.
+     * @param string $settingsId value of _id for the site settings section where key = "super_smtp", settings can be obtained
+     *                                   using the listSettings() function
+     * @param object|array $payload stdClass object or associative array containing the "Super SMTP" settings to apply, must be a (partial)
+     *                                   object/array structured in the same manner as is returned by listSettings() for the "super_smtp" section.
      * @return bool                      true on success
      */
-    public function set_super_smtp_settings_base($settings_id, $payload)
+    public function setSuperSmtpSettingsBase(string $settingsId, $payload): bool
     {
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/set/setting/super_smtp/' . trim($settings_id), $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/set/setting/super_smtp/' . trim($settingsId), $payload);
     }
 
     /**
      * Update "Super Controller Identity" settings, base
      *
-     * @param  string       $settings_id value of _id for the site settings section where key = "super_identity", settings can be obtained
-     *                                   using the list_settings() function
-     * @param  object|array $payload     stdClass object or associative array containing the "Super Controller Identity" settings to apply, must be a (partial)
-     *                                   object/array structured in the same manner as is returned by list_settings() for the "super_identity" section.
+     * @param string $settingsId value of _id for the site settings section where key = "super_identity", settings can be obtained
+     *                                   using the listSettings() function
+     * @param object|array $payload stdClass object or associative array containing the "Super Controller Identity" settings to apply, must be a (partial)
+     *                                   object/array structured in the same manner as is returned by listSettings() for the "super_identity" section.
      * @return bool                      true on success
      */
-    public function set_super_identity_settings_base($settings_id, $payload)
+    public function setSuperIdentitySettingsBase(string $settingsId, $payload): bool
     {
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/set/setting/super_identity/' . trim($settings_id), $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/set/setting/super_identity/' . trim($settingsId), $payload);
     }
 
     /**
      * Rename access point
      *
-     * @param  string $ap_id  _id of the access point to rename
-     * @param  string $apname new name to assign to the access point
+     * @param string $apId _id of the access point to rename
+     * @param string $apName new name to assign to the access point
      * @return bool           true on success
      */
-    public function rename_ap($ap_id, $apname)
+    public function rename_ap(string $apId, string $apName): bool
     {
-        $payload = ['name' => $apname];
+        $payload = ['name' => $apName];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/upd/device/' . trim($ap_id), $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/upd/device/' . trim($apId), $payload);
     }
 
     /**
      * Move a device to another site
      *
-     * @param  string $mac     MAC address of the device to move
-     * @param  string $site_id _id (24 char string) of the site to move the device to
+     * @param string $mac MAC address of the device to move
+     * @param string $siteId _id (24 char string) of the site to move the device to
      * @return bool            true on success
      */
-    public function move_device($mac, $site_id)
+    public function move_device(string $mac, string $siteId): bool
     {
-        $payload = ['site' => $site_id, 'mac' => strtolower($mac), 'cmd' => 'move-device'];
+        $payload = ['site' => $siteId, 'mac' => strtolower($mac), 'cmd' => 'move-device'];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/sitemgr', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/sitemgr', $payload);
     }
 
     /**
      * Delete a device from the current site
      *
-     * @param  string $mac MAC address of the device to delete
+     * @param string $mac MAC address of the device to delete
      * @return bool            true on success
      */
-    public function delete_device($mac)
+    public function deleteDevice(string $mac): bool
     {
         $payload = ['mac' => strtolower($mac), 'cmd' => 'delete-device'];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/sitemgr', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/sitemgr', $payload);
     }
 
     /**
@@ -2421,334 +2414,331 @@ class Client
      *
      * @return array  containing dynamic DNS settings
      */
-    public function list_dynamicdns()
+    public function listDynamicDns()
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/rest/dynamicdns');
+        return $this->fetchResults('/api/s/' . $this->site . '/rest/dynamicdns');
     }
 
     /**
      * Create dynamic DNS settings, base (using REST)
      *
-     * @param  object|array $payload stdClass object or associative array containing the configuration to apply to the site, must be a
-     *                               (partial) object/array structured in the same manner as is returned by list_dynamicdns() for the site.
+     * @param object|array $payload stdClass object or associative array containing the configuration to apply to the site, must be a
+     *                               (partial) object/array structured in the same manner as is returned by listDynamicDns() for the site.
      * @return bool                  true on success
      */
-    public function create_dynamicdns($payload)
+    public function createDynamicDns($payload): bool
     {
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/rest/dynamicdns', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/rest/dynamicdns', $payload);
     }
 
     /**
      * Update site dynamic DNS, base (using REST)
      *
-     * @param  string       $dynamicdns_id _id of the settings which can be found with the list_dynamicdns() function
-     * @param  object|array $payload       stdClass object or associative array containing the configuration to apply to the site, must be a
-     *                                     (partial) object/array structured in the same manner as is returned by list_dynamicdns() for the site.
+     * @param string $dynamicDnsId _id of the settings which can be found with the listDynamicDns() function
+     * @param object|array $payload stdClass object or associative array containing the configuration to apply to the site, must be a
+     *                                     (partial) object/array structured in the same manner as is returned by listDynamicDns() for the site.
      * @return bool                        true on success
      */
-    public function set_dynamicdns($dynamicdns_id, $payload)
+    public function setDynamicDns(string $dynamicDnsId, $payload): bool
     {
         $this->method = 'PUT';
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/rest/dynamicdns/' . trim($dynamicdns_id), $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/rest/dynamicdns/' . trim($dynamicDnsId), $payload);
     }
 
     /**
      * Fetch network settings (using REST)
-     * @param  string $network_id optional, _id value of the network to get settings for
+     * @param string $networkId optional, _id value of the network to get settings for
      * @return array              containing (non-wireless) networks and their settings
      */
-    public function list_networkconf($network_id = '')
+    public function listNetworkConf(string $networkId = '')
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/rest/networkconf/' . trim($network_id));
+        return $this->fetchResults('/api/s/' . $this->site . '/rest/networkconf/' . trim($networkId));
     }
 
     /**
      * Create a network (using REST)
      *
-     * @param  object|array $payload stdClass object or associative array containing the configuration to apply to the network, must be a (partial)
-     *                                object structured in the same manner as is returned by list_networkconf() for the specific network type.
+     * @param object|array $payload stdClass object or associative array containing the configuration to apply to the network, must be a (partial)
+     *                                object structured in the same manner as is returned by listNetworkConf() for the specific network type.
      *                                Do not include the _id property, it is assigned by the controller and returned upon success.
      * @return array|bool             containing a single object with details of the new network on success, else returns false
      */
-    public function create_network($payload)
+    public function createNetwork($payload)
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/rest/networkconf', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/rest/networkconf', $payload);
     }
 
     /**
      * Update network settings, base (using REST)
      *
-     * @param  string       $network_id the "_id" value for the network you wish to update
-     * @param  object|array $payload    stdClass object or associative array containing the configuration to apply to the network, must be a (partial)
-     *                                  object/array structured in the same manner as is returned by list_networkconf() for the network.
+     * @param string $networkId the "_id" value for the network you wish to update
+     * @param object|array $payload stdClass object or associative array containing the configuration to apply to the network, must be a (partial)
+     *                                  object/array structured in the same manner as is returned by listNetworkConf() for the network.
      * @return bool                     true on success
      */
-    public function set_networksettings_base($network_id, $payload)
+    public function setNetworkSettingsBase(string $networkId, $payload): bool
     {
         $this->method = 'PUT';
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/rest/networkconf/' . trim($network_id), $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/rest/networkconf/' . trim($networkId), $payload);
     }
 
     /**
      * Delete a network (using REST)
      *
-     * @param  string $network_id _id value of the network which can be found with the list_networkconf() function
+     * @param string $networkId _id value of the network which can be found with the listNetworkConf() function
      * @return bool                   true on success
      */
-    public function delete_network($network_id)
+    public function deleteNetwork(string $networkId): bool
     {
         $this->method = 'DELETE';
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/rest/networkconf/' . trim($network_id));
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/rest/networkconf/' . trim($networkId));
     }
 
     /**
      * Fetch wlan settings (using REST)
      *
-     * @param  string $wlan_id optional, _id value of the wlan to fetch the settings for
+     * @param string $wlanId optional, _id value of the wlan to fetch the settings for
      * @return array           containing wireless networks and their settings, or an array containing a single wireless network when using
      *                         the <wlan_id> parameter
      */
-    public function list_wlanconf($wlan_id = null)
+    public function listWlanConf(string $wlanId = '')
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/rest/wlanconf/' . trim($wlan_id));
+        return $this->fetchResults('/api/s/' . $this->site . '/rest/wlanconf/' . trim($wlanId));
     }
 
     /**
      * Create a wlan
      *
-     * @param  string  $name             SSID
-     * @param  string  $x_passphrase     new pre-shared key, minimal length is 8 characters, maximum length is 63,
+     * @param string $name SSID
+     * @param string $passphrase new pre-shared key, minimal length is 8 characters, maximum length is 63,
      *                                         assign a value of null when security = 'open'
-     * @param  string  $usergroup_id     user group id that can be found using the list_usergroups() function
-     * @param  string  $wlangroup_id     wlan group id that can be found using the list_wlan_groups() function
-     * @param  boolean $enabled          optional, enable/disable wlan
-     * @param  boolean $hide_ssid        optional, hide/unhide wlan SSID
-     * @param  boolean $is_guest         optional, apply guest policies or not
-     * @param  string  $security         optional, security type (open, wep, wpapsk, wpaeap)
-     * @param  string  $wpa_mode         optional, wpa mode (wpa, wpa2, ..)
-     * @param  string  $wpa_enc          optional, encryption (auto, ccmp)
-     * @param  boolean $vlan_enabled     optional, enable/disable vlan for this wlan
-     * @param  int     $vlan             optional, vlan id
-     * @param  boolean $uapsd_enabled    optional, enable/disable Unscheduled Automatic Power Save Delivery
-     * @param  boolean $schedule_enabled optional, enable/disable wlan schedule
-     * @param  array   $schedule         optional, schedule rules
-     * @param  array   $ap_group_ids     optional, array of ap group ids, required for UniFi controller versions 6.0.X and higher
+     * @param string $usergroupId user group id that can be found using the listUserGroups() function
+     * @param string $wlangroupId wlan group id that can be found using the list_wlan_groups() function
+     * @param boolean $enabled optional, enable/disable wlan, default true
+     * @param boolean $hideSsid optional, hide/unhide wlan SSID, default false
+     * @param boolean $isGuest optional, apply guest policies or not, default false
+     * @param string $security optional, security type (open, wep, wpapsk, wpaeap)
+     * @param string $wpaMode optional, wpa mode (wpa, wpa2, ..)
+     * @param string $wpaEnc optional, encryption (auto, ccmp)
+     * @param boolean $vlanEnabled optional, enable/disable vlan for this wlan, default false
+     * @param int|null $vlan optional, vlan id
+     * @param boolean $uapsdEnabled optional, enable/disable Unscheduled Automatic Power Save Delivery
+     * @param boolean $scheduleEnabled optional, enable/disable wlan schedule
+     * @param array $schedule optional, schedule rules
+     * @param array $apGroupIds optional, array of ap group ids, required for UniFi controller versions 6.0.X and higher
      * @return bool                      true on success
      */
     public function create_wlan(
-        $name,
-        $x_passphrase,
-        $usergroup_id,
-        $wlangroup_id,
-        $enabled          = true,
-        $hide_ssid        = false,
-        $is_guest         = false,
-        $security         = 'open',
-        $wpa_mode         = 'wpa2',
-        $wpa_enc          = 'ccmp',
-        $vlan_enabled     = false,
-        $vlan             = null,
-        $uapsd_enabled    = false,
-        $schedule_enabled = false,
-        $schedule         = [],
-        $ap_group_ids     = null
-    ) {
+        string $name,
+        string $passphrase,
+        string $usergroupId,
+        string $wlangroupId,
+        bool   $enabled = true,
+        bool   $hideSsid = false,
+        bool   $isGuest = false,
+        string $security = 'open',
+        string $wpaMode = 'wpa2',
+        string $wpaEnc = 'ccmp',
+        bool   $vlanEnabled = false,
+        ?int   $vlan = null,
+        bool   $uapsdEnabled = false,
+        bool   $scheduleEnabled = false,
+        array  $schedule = [],
+        array  $apGroupIds = []
+    ): bool
+    {
         $payload = [
-            'name'             => $name,
-            'usergroup_id'     => $usergroup_id,
-            'wlangroup_id'     => $wlangroup_id,
-            'enabled'          => $enabled,
-            'hide_ssid'        => $hide_ssid,
-            'is_guest'         => $is_guest,
-            'security'         => $security,
-            'wpa_mode'         => $wpa_mode,
-            'wpa_enc'          => $wpa_enc,
-            'vlan_enabled'     => $vlan_enabled,
-            'uapsd_enabled'    => $uapsd_enabled,
-            'schedule_enabled' => $schedule_enabled,
-            'schedule'         => $schedule,
+            'name' => $name,
+            'usergroup_id' => $usergroupId,
+            'wlangroup_id' => $wlangroupId,
+            'enabled' => $enabled,
+            'hide_ssid' => $hideSsid,
+            'is_guest' => $isGuest,
+            'security' => $security,
+            'wpa_mode' => $wpaMode,
+            'wpa_enc' => $wpaEnc,
+            'vlan_enabled' => $vlanEnabled,
+            'uapsd_enabled' => $uapsdEnabled,
+            'schedule_enabled' => $scheduleEnabled,
+            'schedule' => $schedule,
         ];
 
-        if (!empty($vlan) && $vlan_enabled) {
+        if ($vlan !== null && $vlanEnabled) {
             $payload['vlan'] = $vlan;
         }
 
-        if (!empty($x_passphrase) && $security !== 'open') {
-            $payload['x_passphrase'] = $x_passphrase;
+        if (!empty($passphrase) && $security !== 'open') {
+            $payload['x_passphrase'] = $passphrase;
         }
 
-        if (!empty($ap_group_ids) && is_array($ap_group_ids)) {
-            $payload['ap_group_ids'] = $ap_group_ids;
+        if (!empty($apGroupIds)) {
+            $payload['ap_group_ids'] = $apGroupIds;
         }
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/add/wlanconf', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/add/wlanconf', $payload);
     }
 
     /**
      * Update wlan settings, base (using REST)
      *
-     * @param  string       $wlan_id the "_id" value for the WLAN which can be found with the list_wlanconf() function
-     * @param  object|array $payload stdClass object or associative array containing the configuration to apply to the wlan, must be a
-     *                               (partial) object/array structured in the same manner as is returned by list_wlanconf() for the wlan.
+     * @param string $wlanId the "_id" value for the WLAN which can be found with the listWlanConf() function
+     * @param object|array $payload stdClass object or associative array containing the configuration to apply to the wlan, must be a
+     *                               (partial) object/array structured in the same manner as is returned by listWlanConf() for the wlan.
      * @return bool                  true on success
      */
-    public function set_wlansettings_base($wlan_id, $payload)
+    public function setWlanSettingsBase(string $wlanId, $payload): bool
     {
         $this->method = 'PUT';
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/rest/wlanconf/' . trim($wlan_id), $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/rest/wlanconf/' . trim($wlanId), $payload);
     }
 
     /**
      * Update basic wlan settings
      *
-     * @param string $wlan_id      the "_id" value for the WLAN which can be found with the list_wlanconf() function
-     * @param string $x_passphrase new pre-shared key, minimal length is 8 characters, maximum length is 63,
+     * @param string $wlanId the "_id" value for the WLAN which can be found with the listWlanConf() function
+     * @param string $passphrase new pre-shared key, minimal length is 8 characters, maximum length is 63,
      *                             is ignored if set to null
-     * @param string $name         optional, SSID
+     * @param string $name optional, SSID
      * @return bool                true on success
      */
-    public function set_wlansettings($wlan_id, $x_passphrase, $name = null)
+    public function setWlanSettings(string $wlanId, string $passphrase, string $name = ''): bool
     {
         $payload = [];
-        $payload['x_passphrase'] = trim($x_passphrase);
+        $payload['x_passphrase'] = trim($passphrase);
 
         if (!empty($name)) {
             $payload['name'] = trim($name);
         }
 
-        return $this->set_wlansettings_base($wlan_id, $payload);
+        return $this->setWlanSettingsBase($wlanId, $payload);
     }
 
     /**
      * Disable/Enable wlan
      *
-     * @param  string $wlan_id the "_id" value for the WLAN which can be found with the list_wlanconf() function
-     * @param  bool   $disable true disables the wlan, false enables it
+     * @param string $wlan_id the "_id" value for the WLAN which can be found with the listWlanConf() function
+     * @param bool $disable true disables the wlan, false enables it
      * @return bool            true on success
      */
-    public function disable_wlan($wlan_id, $disable)
+    public function disableWlan(string $wlan_id, bool $disable): bool
     {
-        if (!is_bool($disable)) {
-            return false;
-        }
-
-        $action  = $disable ? false : true;
+        $action = $disable ? false : true;
         $payload = ['enabled' => $action];
 
-        return $this->set_wlansettings_base($wlan_id, $payload);
+        return $this->setWlanSettingsBase($wlan_id, $payload);
     }
 
     /**
      * Delete a wlan (using REST)
      *
-     * @param  string $wlan_id the "_id" value for the WLAN which can be found with the list_wlanconf() function
+     * @param string $wlanId the "_id" value for the WLAN which can be found with the listWlanConf() function
      * @return bool            true on success
      */
-    public function delete_wlan($wlan_id)
+    public function deleteWlan(string $wlanId): bool
     {
         $this->method = 'DELETE';
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/rest/wlanconf/' . trim($wlan_id));
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/rest/wlanconf/' . trim($wlanId));
     }
 
     /**
      * Update MAC filter for a wlan
      *
-     * @param  string $wlan_id            the "_id" value for the WLAN which can be found with the list_wlanconf() function
-     * @param  string $mac_filter_policy  string, "allow" or "deny"; default MAC policy to apply
-     * @param  bool   $mac_filter_enabled true enables the policy, false disables it
-     * @param  array  $macs               must contain valid MAC strings to be placed in the MAC filter list,
+     * @param string $wlanId the "_id" value for the WLAN which can be found with the listWlanConf() function
+     * @param string $macFilterPolicy string, "allow" or "deny"; default MAC policy to apply
+     * @param bool $macFilterEnabled true enables the policy, false disables it
+     * @param array $macs must contain valid MAC strings to be placed in the MAC filter list,
      *                                    replacing existing values. Existing MAC filter list can be obtained
-     *                                    through list_wlanconf().
+     *                                    through listWlanConf().
      * @return bool                       true on success
      */
-    public function set_wlan_mac_filter($wlan_id, $mac_filter_policy, $mac_filter_enabled, array $macs)
+    public function setWlanMacFilter(string $wlanId, string $macFilterPolicy, bool $macFilterEnabled, array $macs): bool
     {
-        if (!is_bool($mac_filter_enabled)) {
+        if (!is_bool($macFilterEnabled)) {
             return false;
         }
 
-        if (!in_array($mac_filter_policy, ['allow', 'deny'])) {
+        if (!in_array($macFilterPolicy, ['allow', 'deny'])) {
             return false;
         }
 
-        $macs    = array_map('strtolower', $macs);
+        $macs = array_map('strtolower', $macs);
         $payload = [
-            'mac_filter_enabled' => (bool) $mac_filter_enabled,
-            'mac_filter_policy'  => $mac_filter_policy,
-            'mac_filter_list'    => $macs
+            'mac_filter_enabled' => (bool)$macFilterEnabled,
+            'mac_filter_policy' => $macFilterPolicy,
+            'mac_filter_list' => $macs
         ];
 
-        return $this->set_wlansettings_base($wlan_id, $payload);
+        return $this->setWlanSettingsBase($wlanId, $payload);
     }
 
     /**
      * Fetch events
      *
-     * @param  integer $historyhours optional, hours to go back, default value is 720 hours
-     * @param  integer $start        optional, which event number to start with (useful for paging of results), default value is 0
-     * @param  integer $limit        optional, number of events to return, default value is 3000
+     * @param int $historyHours optional, hours to go back, default value is 720 hours
+     * @param int $start optional, which event number to start with (useful for paging of results), default value is 0
+     * @param int $limit optional, number of events to return, default value is 3000
      * @return array                 containing known events
      */
-    public function list_events($historyhours = 720, $start = 0, $limit = 3000)
+    public function listEvents(int $historyHours = 720, int $start = 0, int $limit = 3000)
     {
         $payload = [
-            '_sort'  => '-time',
-            'within' => intval($historyhours),
-            'type'   => null,
-            '_start' => intval($start),
-            '_limit' => intval($limit)
+            '_sort' => '-time',
+            'within' => $historyHours,
+            'type' => null,
+            '_start' => $start,
+            '_limit' => $limit
         ];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/event', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/event', $payload);
     }
 
     /**
      * Fetch alarms
      *
-     * @param  array  $payload optional, array of flags to filter by
+     * @param array $payload optional, array of flags to filter by
      *                         Example: ["archived" => false, "key" => "EVT_GW_WANTransition"]
      *                         return only unarchived for a specific key
      * @return array           containing known alarms
      */
-    public function list_alarms($payload = [])
+    public function listAlarms(array $payload = [])
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/list/alarm', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/list/alarm', $payload);
     }
 
     /**
      * Count alarms
      *
-     * @param  bool  $archived optional, if true all alarms are counted, if false only non-archived (active) alarms are counted,
+     * @param bool $archived optional, if true all alarms are counted, if false only non-archived (active) alarms are counted,
      *                         by default all alarms are counted
      * @return array           containing the alarm count
      */
-    public function count_alarms($archived = null)
+    public function countAlarms(bool $archived = true)
     {
-        $path_suffix = $archived === false ? '?archived=false' : null;
+        $pathSuffix = $archived === false ? '?archived=false' : null;
 
-        return $this->fetch_results('/api/s/' . $this->site . '/cnt/alarm' . $path_suffix);
+        return $this->fetchResults('/api/s/' . $this->site . '/cnt/alarm' . $pathSuffix);
     }
 
     /**
      * Archive alarms(s)
      *
-     * @param  string $alarm_id optional, _id of the alarm to archive which can be found with the list_alarms() function,
+     * @param string $alarmId optional, _id of the alarm to archive which can be found with the listAlarms() function,
      *                          by default all alarms are archived
      * @return bool             true on success
      */
-    public function archive_alarm($alarm_id = null)
+    public function archiveAlarm(string $alarmId = ''): bool
     {
         $payload = ['cmd' => 'archive-all-alarms'];
-        if (!empty($alarm_id)) {
-            $payload = ['_id' => $alarm_id, 'cmd' => 'archive-alarm'];
+        if (!empty($alarmId)) {
+            $payload = ['_id' => $alarmId, 'cmd' => 'archive-alarm'];
         }
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/evtmgr', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/evtmgr', $payload);
     }
 
     /**
@@ -2760,9 +2750,9 @@ class Client
      * @return array|bool returns an array with a single object containing details of the current known latest controller version info
      *                    on success, else returns false
      */
-    public function check_controller_update()
+    public function checkControllerUpdate()
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/fwupdate/latest-version');
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/fwupdate/latest-version');
     }
 
     /**
@@ -2773,11 +2763,11 @@ class Client
      *
      * @return bool returns true upon success
      */
-    public function check_firmware_update()
+    public function checkFirmwareUpdate(): bool
     {
         $payload = ['cmd' => 'check-firmware-update'];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/productinfo', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/productinfo', $payload);
     }
 
     /**
@@ -2786,14 +2776,14 @@ class Client
      * NOTES:
      * - updates the device to the latest STABLE firmware known to the controller
      *
-     * @param  string $device_mac MAC address of the device to upgrade
+     * @param string $mac MAC address of the device to upgrade
      * @return bool               returns true upon success
      */
-    public function upgrade_device($device_mac)
+    public function upgradeDevice(string $mac): bool
     {
-        $payload = ['mac' => strtolower($device_mac)];
+        $payload = ['mac' => strtolower($mac)];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/devmgr/upgrade', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/devmgr/upgrade', $payload);
     }
 
     /**
@@ -2803,15 +2793,15 @@ class Client
      * - updates the device to the firmware file at the given URL
      * - please take great care to select a valid firmware file for the device!
      *
-     * @param  string $firmware_url URL for the firmware file to upgrade the device to
-     * @param  string $device_mac   MAC address of the device to upgrade
+     * @param string $firmwareUrl URL for the firmware file to upgrade the device to
+     * @param string $mac MAC address of the device to upgrade
      * @return bool                 returns true upon success
      */
-    public function upgrade_device_external($firmware_url, $device_mac)
+    public function upgradeDeviceExternal(string $firmwareUrl, string $mac): bool
     {
-        $payload = ['url' => filter_var($firmware_url, FILTER_SANITIZE_URL), 'mac' => strtolower($device_mac)];
+        $payload = ['url' => filter_var($firmwareUrl, FILTER_SANITIZE_URL), 'mac' => strtolower($mac)];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/devmgr/upgrade-external', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/devmgr/upgrade-external', $payload);
     }
 
     /**
@@ -2823,11 +2813,11 @@ class Client
      *
      * @return bool returns true upon success
      */
-    public function start_rolling_upgrade()
+    public function startRollingUpgrade(): bool
     {
         $payload = ['cmd' => 'set-rollupgrade'];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/devmgr', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/devmgr', $payload);
     }
 
     /**
@@ -2835,21 +2825,21 @@ class Client
      *
      * @return bool returns true upon success
      */
-    public function cancel_rolling_upgrade()
+    public function cancelRollingUpgrade(): bool
     {
         $payload = ['cmd' => 'unset-rollupgrade'];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/devmgr', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/devmgr', $payload);
     }
 
     /**
      * Fetch firmware versions
      *
-     * @param  string $type optional, "available" or "cached", determines which firmware types to return,
+     * @param string $type optional, "available" or "cached", determines which firmware types to return,
      *                      default value is "available"
      * @return array        containing firmware versions
      */
-    public function list_firmware($type = 'available')
+    public function listFirmware(string $type = 'available')
     {
         if (!in_array($type, ['available', 'cached'])) {
             return false;
@@ -2857,7 +2847,7 @@ class Client
 
         $payload = ['cmd' => 'list-' . $type];
 
-        return $this->fetch_results('/api/s/' . $this->site . '/cmd/firmware', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/cmd/firmware', $payload);
     }
 
     /**
@@ -2867,54 +2857,54 @@ class Client
      * - only applies to switches and their PoE ports...
      * - port must be actually providing power
      *
-     * @param  string $switch_mac main MAC address of the switch
-     * @param  int    $port_idx   port number/index of the port to be affected
+     * @param string $mac main MAC address of the switch
+     * @param int $portIdx port number/index of the port to be affected
      * @return bool               returns true upon success
      */
-    public function power_cycle_switch_port($switch_mac, $port_idx)
+    public function powerCycleSwitchPort(string $mac, int $portIdx): bool
     {
-        $payload = ['mac' => strtolower($switch_mac), 'port_idx' => intval($port_idx), 'cmd' => 'power-cycle'];
+        $payload = ['mac' => strtolower($mac), 'port_idx' => $portIdx, 'cmd' => 'power-cycle'];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/devmgr', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/devmgr', $payload);
     }
 
     /**
      * Trigger an RF scan by an AP
      *
-     * @param  string $ap_mac MAC address of the AP
+     * @param string $mac MAC address of the AP
      * @return bool           returns true upon success
      */
-    public function spectrum_scan($ap_mac)
+    public function spectrumScan(string $mac): bool
     {
-        $payload = ['cmd' => 'spectrum-scan', 'mac' => strtolower($ap_mac)];
+        $payload = ['cmd' => 'spectrum-scan', 'mac' => strtolower($mac)];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/devmgr', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/devmgr', $payload);
     }
 
     /**
      * Check the RF scanning state of an AP
      *
-     * @param  string $ap_mac MAC address of the AP
+     * @param string $mac MAC address of the AP
      * @return object         containing relevant information (results if available) regarding the RF scanning state of the AP
      */
-    public function spectrum_scan_state($ap_mac)
+    public function spectrumScanState(string $mac)
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/stat/spectrum-scan/' . strtolower(trim($ap_mac)));
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/spectrum-scan/' . strtolower(trim($mac)));
     }
 
     /**
      * Update device settings, base (using REST)
      *
-     * @param  string       $device_id _id of the device which can be found with the list_devices() function
-     * @param  object|array $payload   stdClass object or associative array containing the configuration to apply to the device, must be a
+     * @param string $deviceId _id of the device which can be found with the list_devices() function
+     * @param object|array $payload stdClass object or associative array containing the configuration to apply to the device, must be a
      *                                 (partial) object/array structured in the same manner as is returned by list_devices() for the device.
      * @return bool                    true on success
      */
-    public function set_device_settings_base($device_id, $payload)
+    public function setDeviceSettingsBase(string $deviceId, $payload): bool
     {
         $this->method = 'PUT';
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/rest/device/' . trim($device_id), $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/rest/device/' . trim($deviceId), $payload);
     }
 
     /**
@@ -2925,9 +2915,9 @@ class Client
      *
      * @return array objects containing all Radius profiles for the current site
      */
-    public function list_radius_profiles()
+    public function listRadiusProfiles()
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/rest/radiusprofile');
+        return $this->fetchResults('/api/s/' . $this->site . '/rest/radiusprofile');
     }
 
     /**
@@ -2938,9 +2928,9 @@ class Client
      *
      * @return array objects containing all Radius accounts for the current site
      */
-    public function list_radius_accounts()
+    public function listRadiusAccounts()
     {
-        return $this->fetch_results('/api/s/' . $this->site . '/rest/account');
+        return $this->fetchResults('/api/s/' . $this->site . '/rest/account');
     }
 
     /**
@@ -2949,9 +2939,9 @@ class Client
      * NOTES:
      * - this function/method is only supported on controller versions 5.5.19 and later
      *
-     * @param  string $name               name for the new account
-     * @param  string $x_password         password for the new account
-     * @param  int    $tunnel_type        must be one of the following values:
+     * @param string $name name for the new account
+     * @param string $newPassword password for the new account
+     * @param int $tunnelType must be one of the following values:
      *                                    1      Point-to-Point Tunneling Protocol (PPTP)
      *                                    2      Layer Two Forwarding (L2F)
      *                                    3      Layer Two Tunneling Protocol (L2TP)
@@ -2965,7 +2955,7 @@ class Client
      *                                    11     Bay Dial Virtual Services (DVS)
      *                                    12     IP-in-IP Tunneling
      *                                    13     Virtual LANs (VLAN)
-     * @param  int    $tunnel_medium_type must be one of the following values:
+     * @param int $tunnelMediumType must be one of the following values:
      *                                    1      IPv4 (IP version 4)
      *                                    2      IPv6 (IP version 6)
      *                                    3      NSAP
@@ -2981,29 +2971,29 @@ class Client
      *                                    13     Decnet IV
      *                                    14     Banyan Vines
      *                                    15     E.164 with NSAP format subaddress
-     * @param  int    $vlan               optional, VLAN to assign to the account
+     * @param int|null $vlan optional, VLAN to assign to the account
      * @return array                      containing a single object for the newly created account upon success, else returns false
      */
-    public function create_radius_account($name, $x_password, $tunnel_type, $tunnel_medium_type, $vlan = null)
+    public function createRadiusAccount(string $name, string $newPassword, int $tunnelType, int $tunnelMediumType, ?int $vlan = null)
     {
-        $tunnel_types        = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
-        $tunnel_medium_types = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-        if (!in_array($tunnel_type, $tunnel_types) || !in_array($tunnel_medium_type, $tunnel_medium_types)) {
+        $tunnelTypes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+        $tunnelMediumTypes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+        if (!in_array($tunnelType, $tunnelTypes) || !in_array($tunnelMediumType, $tunnelMediumTypes)) {
             return false;
         }
 
         $payload = [
-            'name'               => $name,
-            'x_password'         => $x_password,
-            'tunnel_type'        => (int) $tunnel_type,
-            'tunnel_medium_type' => (int) $tunnel_medium_type
+            'name' => $name,
+            'x_password' => $newPassword,
+            'tunnel_type' => $tunnelType,
+            'tunnel_medium_type' => $tunnelMediumType
         ];
 
         if (!is_null($vlan)) {
-            $payload['vlan'] = (int) $vlan;
+            $payload['vlan'] = $vlan;
         }
 
-        return $this->fetch_results('/api/s/' . $this->site . '/rest/account', $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/rest/account', $payload);
     }
 
     /**
@@ -3012,16 +3002,16 @@ class Client
      * NOTES:
      * - this function/method is only supported on controller versions 5.5.19 and later
      *
-     * @param  string       $account_id _id of the account which can be found with the list_radius_accounts() function
-     * @param  object|array $payload    stdClass object or associative array containing the new profile to apply to the account, must be a (partial)
+     * @param string $accountId _id of the account which can be found with the listRadiusAccounts() function
+     * @param object|array $payload stdClass object or associative array containing the new profile to apply to the account, must be a (partial)
      *                                  object/array structured in the same manner as is returned by list_radius_accounts() for the account.
      * @return bool                     true on success
      */
-    public function set_radius_account_base($account_id, $payload)
+    public function setRadiusAccountBase(string $accountId, $payload): bool
     {
         $this->method = 'PUT';
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/rest/account/' . trim($account_id), $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/rest/account/' . trim($accountId), $payload);
     }
 
     /**
@@ -3030,24 +3020,24 @@ class Client
      * NOTES:
      * - this function/method is only supported on controller versions 5.5.19 and later
      *
-     * @param  string $account_id _id of the account which can be found with the list_radius_accounts() function
+     * @param string $accountId _id of the account which can be found with the list_radius_accounts() function
      * @return bool               true on success
      */
-    public function delete_radius_account($account_id)
+    public function deleteRadiusAccount(string $accountId): bool
     {
         $this->method = 'DELETE';
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/rest/account/' . trim($account_id));
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/rest/account/' . trim($accountId));
     }
 
     /**
      * Execute specific stats command
      *
-     * @param  string $command command to execute, known valid values:
+     * @param string $command command to execute, known valid values:
      *                         'reset-dpi', resets all DPI counters for the current site
      * @return bool            true on success
      */
-    public function cmd_stat($command)
+    public function cmdStat(string $command)
     {
         if (!in_array($command, ['reset-dpi'])) {
             return false;
@@ -3055,24 +3045,20 @@ class Client
 
         $payload = ['cmd' => trim($command)];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/cmd/stat', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/cmd/stat', $payload);
     }
 
     /**
      * Toggle Element Adoption ON or OFF
      *
-     * @param  bool $enable true enables Element Adoption, false disables Element Adoption
+     * @param bool $enable true enables Element Adoption, false disables Element Adoption
      * @return bool         true on success
      */
-    public function set_element_adoption($enable)
+    public function setElementAdoption(bool $enable): bool
     {
-        if (!is_bool($enable)) {
-            return false;
-        }
-
         $payload = ['enabled' => $enable];
 
-        return $this->fetch_results_boolean('/api/s/' . $this->site . '/set/setting/element_adopt', $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/set/setting/element_adopt', $payload);
     }
 
     /**
@@ -3084,21 +3070,19 @@ class Client
      *
      * @return array containing translations of UniFi device "state" values to humanized form
      */
-    public function list_device_states()
+    public function listDeviceStates(): array
     {
-        $device_states = [
-            0  => 'offline',
-            1  => 'connected',
-            2  => 'pending adoption',
-            4  => 'updating',
-            5  => 'provisioning',
-            6  => 'unreachable',
-            7  => 'adopting',
-            9  => 'adoption error',
+        return [
+            0 => 'offline',
+            1 => 'connected',
+            2 => 'pending adoption',
+            4 => 'updating',
+            5 => 'provisioning',
+            6 => 'unreachable',
+            7 => 'adopting',
+            9 => 'adoption error',
             11 => 'isolated'
         ];
-
-        return $device_states;
     }
 
     /**
@@ -3107,16 +3091,16 @@ class Client
      * NOTE:
      * Only use this method when you fully understand the behavior of the UniFi controller API. No input validation is performed, to be used with care!
      *
-     * @param  string       $path           suffix of the URL (following the port number) to pass request to, *must* start with a "/" character
-     * @param  string       $method optional, HTTP request type, can be GET (default), POST, PUT, PATCH, or DELETE
-     * @param  object|array $payload        optional, stdClass object or associative array containing the payload to pass
-     * @param  string       $return         optional, string; determines how to return results, when "boolean" the method must return a
+     * @param string $path suffix of the URL (following the port number) to pass request to, *must* start with a "/" character
+     * @param string $method optional, HTTP request type, can be GET (default), POST, PUT, PATCH, or DELETE
+     * @param object|array $payload optional, stdClass object or associative array containing the payload to pass
+     * @param string $return optional, string; determines how to return results, when "boolean" the method must return a
      *                                      boolean result (true/false) or "array" when the method must return an array
      * @return bool|array                   returns results as requested, returns false on incorrect parameters
      */
-    public function custom_api_request($path, $method = 'GET', $payload = null, $return = 'array')
+    public function customApiRequest(string $path, string $method = 'GET', $payload = null, string $return = 'array')
     {
-        if (!in_array($method, $this->methods_allowed)) {
+        if (!in_array($method, $this->methodsAllowed, true)) {
             return false;
         }
 
@@ -3127,9 +3111,11 @@ class Client
         $this->method = $method;
 
         if ($return === 'array') {
-            return $this->fetch_results($path, $payload);
-        } elseif ($return === 'boolean') {
-            return $this->fetch_results_boolean($path, $payload);
+            return $this->fetchResults($path, $payload);
+        }
+
+        if ($return === 'boolean') {
+            return $this->fetchResultsBoolean($path, $payload);
         }
 
         return false;
@@ -3146,49 +3132,49 @@ class Client
      * NOTE:
      * changed function/method name to fit it's purpose
      *
-     * @param  string $device_mac optional, the MAC address of a single device for which the call must be made
+     * @param string $deviceMac optional, the MAC address of a single device for which the call must be made
      * @return array              containing known device objects (or a single device when using the <device_mac> parameter)
      */
-    public function list_aps($device_mac = null)
+    public function listAps(string $deviceMac = null)
     {
         trigger_error(
             'Function list_aps() has been deprecated, use list_devices() instead.',
             E_USER_DEPRECATED
         );
 
-        return $this->list_devices($device_mac);
+        return $this->listDevices($deviceMac);
     }
 
     /**
      * Start flashing LED of an access point for locating purposes
      *
-     * @param  string $mac device MAC address
+     * @param string $mac device MAC address
      * @return bool        true on success
      */
-    public function set_locate_ap($mac)
+    public function setLocateAp(string $mac): bool
     {
         trigger_error(
             'Function set_locate_ap() has been deprecated, use locate_ap() instead.',
             E_USER_DEPRECATED
         );
 
-        return $this->locate_ap($mac, true);
+        return $this->locateAp($mac, true);
     }
 
     /**
      * Stop flashing LED of an access point for locating purposes
      *
-     * @param  string $mac device MAC address
+     * @param string $mac device MAC address
      * @return bool        true on success
      */
-    public function unset_locate_ap($mac)
+    public function unsetLocateAp(string $mac): bool
     {
         trigger_error(
             'Function unset_locate_ap() has been deprecated, use locate_ap() instead.',
             E_USER_DEPRECATED
         );
 
-        return $this->locate_ap($mac, false);
+        return $this->locateAp($mac, false);
     }
 
     /**
@@ -3196,14 +3182,14 @@ class Client
      *
      * @return bool true on success
      */
-    public function site_ledson()
+    public function siteLedsOn(): bool
     {
         trigger_error(
             'Function site_ledson() has been deprecated, use site_leds() instead.',
             E_USER_DEPRECATED
         );
 
-        return $this->site_leds(true);
+        return $this->siteLeds(true);
     }
 
     /**
@@ -3211,30 +3197,30 @@ class Client
      *
      * @return bool true on success
      */
-    public function site_ledsoff()
+    public function siteLedsOff(): bool
     {
         trigger_error(
             'Function site_ledsoff() has been deprecated, use site_leds() instead.',
             E_USER_DEPRECATED
         );
 
-        return $this->site_leds(false);
+        return $this->siteLeds(false);
     }
 
     /**
      * Reboot an access point
      *
-     * @param  string $mac device MAC address
+     * @param string $mac device MAC address
      * @return bool        true on success
      */
-    public function restart_ap($mac)
+    public function restartAp(string $mac)
     {
         trigger_error(
             'Function restart_ap() has been deprecated, use restart_device() instead.',
             E_USER_DEPRECATED
         );
 
-        return $this->restart_device($mac);
+        return $this->restartDevice($mac);
     }
 
     /****************************************************************
@@ -3247,13 +3233,13 @@ class Client
      * NOTE:
      * this method is useful to switch between sites
      *
-     * @param  string $site string; must be the short site name of a site to which the
+     * @param string $site string; must be the short site name of a site to which the
      *                              provided credentials have access
      * @return string               the new (short) site name
      */
-    public function set_site($site)
+    public function setSite(string $site): string
     {
-        $this->check_site($site);
+        $this->checkSite($site);
         $this->site = trim($site);
 
         return $this->site;
@@ -3264,7 +3250,7 @@ class Client
      *
      * @return string the current (short) site name
      */
-    public function get_site()
+    public function getSite(): string
     {
         return $this->site;
     }
@@ -3272,20 +3258,14 @@ class Client
     /**
      * Set debug mode
      *
-     * @param  bool $enable true enables debug mode, false disables debug mode
+     * @param bool $enable true enables debug mode, false disables debug mode
      * @return bool         false when a non-boolean parameter was passed
      */
-    public function set_debug($enable)
+    public function setDebug(bool $enable): bool
     {
-        if ($enable === true || $enable === false) {
-            $this->debug = $enable;
+        $this->debug = $enable;
 
-            return true;
-        }
-
-        trigger_error('Error: the parameter for set_debug() must be boolean');
-
-        return false;
+        return true;
     }
 
     /**
@@ -3293,7 +3273,7 @@ class Client
      *
      * @return bool the current boolean value for $debug
      */
-    public function get_debug()
+    public function getDebug(): bool
     {
         return $this->debug;
     }
@@ -3301,18 +3281,18 @@ class Client
     /**
      * Get last raw results
      *
-     * @param  boolean       $return_json true returns the results in "pretty printed" json format,
+     * @param boolean $returnJson true returns the results in "pretty printed" json format,
      *                                    false returns PHP stdClass Object format (default)
      * @return object|string              the raw results as returned by the controller API
      */
-    public function get_last_results_raw($return_json = false)
+    public function getLastResultsRaw(bool $returnJson = false)
     {
-        if (!is_null($this->last_results_raw)) {
-            if ($return_json) {
-                return json_encode($this->last_results_raw, JSON_PRETTY_PRINT);
+        if (!is_null($this->lastResultsRaw)) {
+            if ($returnJson) {
+                return json_encode($this->lastResultsRaw, JSON_PRETTY_PRINT);
             }
 
-            return $this->last_results_raw;
+            return $this->lastResultsRaw;
         }
 
         return false;
@@ -3323,10 +3303,10 @@ class Client
      *
      * @return object|bool the error message of the last method called in PHP stdClass Object format, returns false if unavailable
      */
-    public function get_last_error_message()
+    public function getLastErrorMessage()
     {
-        if (!is_null($this->last_error_message)) {
-            return $this->last_error_message;
+        if (!is_null($this->lastErrorMessage)) {
+            return $this->lastErrorMessage;
         }
 
         return false;
@@ -3345,12 +3325,12 @@ class Client
      *
      * @return string the UniFi controller cookie
      */
-    public function get_cookie()
+    public function getCookie(): string
     {
         return $this->cookies;
     }
 
-    public function get_cookies()
+    public function getCookies(): string
     {
         return $this->cookies;
     }
@@ -3361,19 +3341,19 @@ class Client
      * @return string semver compatible version of this class
      *                https://semver.org/
      */
-    public function get_class_version()
+    public function getClassVersion(): string
     {
-        return $this->class_version;
+        return $this->classVersion;
     }
 
     /**
      * Set value for the private property $cookies
      *
-     * @param string $cookies_value new value for $cookies
+     * @param string $cookiesValue new value for $cookies
      */
-    public function set_cookies($cookies_value)
+    public function setCookies(string $cookiesValue): void
     {
-        $this->cookies = $cookies_value;
+        $this->cookies = $cookiesValue;
     }
 
     /**
@@ -3381,7 +3361,7 @@ class Client
      *
      * @return string request type
      */
-    public function get_method()
+    public function getMethod(): string
     {
         return $this->method;
     }
@@ -3389,13 +3369,13 @@ class Client
     /**
      * Set request method
      *
-     * @param  string $method a valid HTTP request method
+     * @param string $method a valid HTTP request method
      * @return bool           whether request was successful or not
      */
-    public function set_method($method)
+    public function setMethod(string $method): bool
     {
 
-        if (!in_array($method, $this->methods_allowed)) {
+        if (!in_array($method, $this->methodsAllowed, true)) {
             return false;
         }
 
@@ -3409,11 +3389,11 @@ class Client
      *
      * https://curl.haxx.se/libcurl/c/CURLOPT_SSL_VERIFYPEER.html
      *
-     * @return bool value of private property $ssl_verify_peer (cURL option CURLOPT_SSL_VERIFYPEER)
+     * @return bool value of private property $sslVerifyPeer (cURL option CURLOPT_SSL_VERIFYPEER)
      */
-    public function get_ssl_verify_peer()
+    public function getSslVerifyPeer(): bool
     {
-        return $this->ssl_verify_peer;
+        return $this->sslVerifyPeer;
     }
 
     /**
@@ -3421,15 +3401,11 @@ class Client
      *
      * https://curl.haxx.se/libcurl/c/CURLOPT_SSL_VERIFYPEER.html
      *
-     * @param int|bool $ssl_verify_peer should be 0/false or 1/true
+     * @param bool $sslVerifyPeer should be 0/false or 1/true
      */
-    public function set_ssl_verify_peer($ssl_verify_peer)
+    public function setSslVerifyPeer(bool $sslVerifyPeer): bool
     {
-        if (!in_array($ssl_verify_peer, [0, false, 1, true])) {
-            return false;
-        }
-
-        $this->ssl_verify_peer = $ssl_verify_peer;
+        $this->sslVerifyPeer = $sslVerifyPeer;
 
         return true;
     }
@@ -3439,11 +3415,11 @@ class Client
      *
      * https://curl.haxx.se/libcurl/c/CURLOPT_SSL_VERIFYHOST.html
      *
-     * @return bool value of private property $ssl_verify_peer (cURL option CURLOPT_SSL_VERIFYHOST)
+     * @return bool|int value of private property $sslVerifyPeer (cURL option CURLOPT_SSL_VERIFYHOST)
      */
-    public function get_ssl_verify_host()
+    public function getSslVerifyHost()
     {
-        return $this->ssl_verify_host;
+        return $this->sslVerifyHost;
     }
 
     /**
@@ -3451,15 +3427,15 @@ class Client
      *
      * https://curl.haxx.se/libcurl/c/CURLOPT_SSL_VERIFYHOST.html
      *
-     * @param int|bool $ssl_verify_host should be 0/false or 2
+     * @param int|bool $sslVerifyHost should be 0/false or 2
      */
-    public function set_ssl_verify_host($ssl_verify_host)
+    public function setSslVerifyHost($sslVerifyHost): bool
     {
-        if (!in_array($ssl_verify_host, [0, false, 2])) {
+        if (!in_array($sslVerifyHost, [0, false, 2], true)) {
             return false;
         }
 
-        $this->ssl_verify_host = $ssl_verify_host;
+        $this->sslVerifyHost = $sslVerifyHost;
 
         return true;
     }
@@ -3469,24 +3445,20 @@ class Client
      *
      * @return bool whether current controller is UniFi OS-based
      */
-    public function get_is_unifi_os()
+    public function getIsUnifiOs(): bool
     {
-        return $this->is_unifi_os;
+        return $this->isUnifiOs;
     }
 
     /**
-     * Set value for private property $is_unifi_os
+     * Set value for private property $isUnifiOs
      *
-     * @param  bool|int $is_unifi_os new value, must be 0, 1, true or false
+     * @param bool $isUnifiOs new value, must be true or false
      * @return bool                  whether request was successful or not
      */
-    public function set_is_unifi_os($is_unifi_os)
+    public function setIsUnifiOs(bool $isUnifiOs): bool
     {
-        if (!in_array($is_unifi_os, [0, false, 1, true])) {
-            return false;
-        }
-
-        $this->is_unifi_os = $is_unifi_os;
+        $this->isUnifiOs = $isUnifiOs;
 
         return true;
     }
@@ -3496,9 +3468,9 @@ class Client
      *
      * @param int $timeout new value for $connect_timeout in seconds
      */
-    public function set_connection_timeout($timeout)
+    public function setConnectionTimeout(int $timeout): void
     {
-        $this->connect_timeout = $timeout;
+        $this->connectTimeout = $timeout;
     }
 
     /**
@@ -3506,9 +3478,9 @@ class Client
      *
      * @return int current value if $connect_timeout
      */
-    public function get_connection_timeout()
+    public function getConnectionTimeout(): int
     {
-        return $this->connect_timeout;
+        return $this->connectTimeout;
     }
 
     /****************************************************************
@@ -3520,46 +3492,46 @@ class Client
      *
      * execute the cURL request and return results
      *
-     * @param  string       $path           request path
-     * @param  object|array $payload        optional, PHP associative array or stdClass Object, payload to pass with the request
-     * @param  boolean      $boolean        optional, whether the method should return a boolean result, else return
+     * @param string $path request path
+     * @param object|array $payload optional, PHP associative array or stdClass Object, payload to pass with the request
+     * @param boolean $boolean optional, whether the method should return a boolean result, else return
      *                                      the "data" array
-     * @param  boolean      $login_required optional, whether the method requires to be logged in or not
+     * @param boolean $loginRequired optional, whether the method requires to be logged in or not
      * @return bool|array                   [description]
      */
-    protected function fetch_results($path, $payload = null, $boolean = false, $login_required = true)
+    protected function fetchResults(string $path, $payload = null, bool $boolean = false, bool $loginRequired = true)
     {
         /**
          * guard clause to check if logged in when needed
          */
-        if ($login_required && !$this->is_loggedin) {
+        if ($loginRequired && !$this->isLoggedin) {
             return false;
         }
 
-        $this->last_results_raw = $this->exec_curl($path, $payload);
+        $this->lastResultsRaw = $this->execCurl($path, $payload);
 
-        if (is_string($this->last_results_raw)) {
-            $response = json_decode($this->last_results_raw);
-            $this->catch_json_last_error();
+        if (is_string($this->lastResultsRaw)) {
+            $response = json_decode($this->lastResultsRaw);
+            $this->catchLastJsonError();
 
             if (isset($response->meta->rc)) {
                 if ($response->meta->rc === 'ok') {
-                    $this->last_error_message = null;
+                    $this->lastErrorMessage = null;
                     if (is_array($response->data) && !$boolean) {
                         return $response->data;
                     }
 
                     return true;
-                } elseif ($response->meta->rc === 'error') {
-                    /**
-                     * an error occurred:
-                     * set $this->set last_error_message if the returned error message is available
-                     */
-                    if (isset($response->meta->msg)) {
-                        $this->last_error_message = $response->meta->msg;
-                        if ($this->debug) {
-                            trigger_error('Debug: Last error message: ' . $this->last_error_message);
-                        }
+                }
+
+                /**
+                 * an error occurred:
+                 * set $this->set last_error_message if the returned error message is available
+                 */
+                if (($response->meta->rc === 'error') && isset($response->meta->msg)) {
+                    $this->lastErrorMessage = $response->meta->msg;
+                    if ($this->debug) {
+                        trigger_error('Debug: Last error message: ' . $this->lastErrorMessage);
                     }
                 }
             }
@@ -3570,9 +3542,9 @@ class Client
             if (strpos($path, '/v2/api/') === 0) {
                 if (isset($response->errorCode)) {
                     if (isset($response->message)) {
-                        $this->last_error_message = $response->message;
+                        $this->lastErrorMessage = $response->message;
                         if ($this->debug) {
-                            trigger_error('Debug: Last error message: ' . $this->last_error_message);
+                            trigger_error('Debug: Last error message: ' . $this->lastErrorMessage);
                         }
                     }
 
@@ -3591,14 +3563,14 @@ class Client
      *
      * execute the cURL request and return a boolean value
      *
-     * @param  string       $path           request path
-     * @param  object|array $payload        optional, PHP associative array or stdClass Object, payload to pass with the request
-     * @param  bool         $login_required optional, whether the method requires to be logged in or not
+     * @param string $path request path
+     * @param object|array $payload optional, PHP associative array or stdClass Object, payload to pass with the request
+     * @param bool $loginRequired optional, whether the method requires to be logged in or not
      * @return bool                         [description]
      */
-    protected function fetch_results_boolean($path, $payload = null, $login_required = true)
+    protected function fetchResultsBoolean(string $path, $payload = null, bool $loginRequired = true): bool
     {
-        return $this->fetch_results($path, $payload, true, $login_required);
+        return (bool)$this->fetchResults($path, $payload, true, $loginRequired);
     }
 
     /**
@@ -3606,7 +3578,7 @@ class Client
      *
      * @return bool returns true upon success, false upon failure
      */
-    protected function catch_json_last_error()
+    protected function catchLastJsonError(): bool
     {
         if ($this->debug) {
             switch (json_last_error()) {
@@ -3665,10 +3637,10 @@ class Client
     /**
      * Validate the submitted base URL
      *
-     * @param  string $baseurl the base URL to validate
+     * @param string $baseurl the base URL to validate
      * @return bool            true if base URL is a valid URL, else returns false
      */
-    protected function check_base_url($baseurl)
+    protected function checkBaseUrl(string $baseurl): bool
     {
         if (!filter_var($baseurl, FILTER_VALIDATE_URL) || substr($baseurl, -1) === '/') {
             trigger_error('The URL provided is incomplete, invalid or ends with a / character!');
@@ -3682,10 +3654,10 @@ class Client
     /**
      * Check the (short) site name
      *
-     * @param  string $site the (short) site name to check
+     * @param string $site the (short) site name to check
      * @return bool         true if (short) site name is valid, else returns false
      */
-    protected function check_site($site)
+    protected function checkSite($site)
     {
         if ($this->debug && preg_match("/\s/", $site)) {
             trigger_error('The provided (short) site name may not contain any spaces');
@@ -3701,7 +3673,7 @@ class Client
      *
      * @return bool true when unificookie was updated, else returns false
      */
-    protected function update_unificookie()
+    protected function updateUnificookie(): bool
     {
         if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION['unificookie']) && !empty($_SESSION['unificookie'])) {
             $this->cookies = $_SESSION['unificookie'];
@@ -3710,7 +3682,7 @@ class Client
              * if the cookie contains a JWT this is a UniFi OS controller
              */
             if (strpos($this->cookies, 'TOKEN') !== false) {
-                $this->is_unifi_os = true;
+                $this->isUnifiOs = true;
             }
 
             return true;
@@ -3724,49 +3696,54 @@ class Client
      *
      * @return bool true upon success or false when unable to extract the CSRF token
      */
-    protected function create_x_csrf_token_header()
+    protected function create_x_csrf_token_header(): bool
     {
         if (!empty($this->cookies) && strpos($this->cookies, 'TOKEN') !== false) {
-            $cookie_bits = explode('=', $this->cookies);
-            if (empty($cookie_bits) || !array_key_exists(1, $cookie_bits)) {
-                return;
+            $cookieBits = explode('=', $this->cookies);
+            if (empty($cookieBits) || !array_key_exists(1, $cookieBits)) {
+                return false;
             }
 
-            $jwt_components = explode('.', $cookie_bits[1]);
-            if (empty($jwt_components) || !array_key_exists(1, $jwt_components)) {
-                return;
+            $jwtComponents = explode('.', $cookieBits[1]);
+            if (empty($jwtComponents) || !array_key_exists(1, $jwtComponents)) {
+                return false;
             }
 
-            $this->headers[] = 'x-csrf-token: ' . json_decode(base64_decode($jwt_components[1]))->csrfToken;
+            $this->headers[] = 'x-csrf-token: ' . json_decode(base64_decode($jwtComponents[1]))->csrfToken;
+
+            return true;
         }
+
+        return false;
     }
 
     /**
      * Callback function for cURL to extract and store cookies as needed
      *
-     * @param  object|resource $ch          the cURL instance
-     * @param  int             $header_line the response header line number
+     * @param object|resource $ch the cURL instance
+     * @param int $headerLine the response header line number
      * @return int                          length of the header line
      */
-    protected function response_header_callback($ch, $header_line) {
-        if (strpos($header_line, 'unifises') !== false || strpos($header_line, 'TOKEN') !== false) {
-            $cookie = trim(str_replace(['set-cookie: ', 'Set-Cookie: '], '', $header_line));
+    protected function responseHeaderCallback($ch, int $headerLine)
+    {
+        if (strpos($headerLine, 'unifises') !== false || strpos($headerLine, 'TOKEN') !== false) {
+            $cookie = trim(str_replace(['set-cookie: ', 'Set-Cookie: '], '', $headerLine));
 
             if (!empty($cookie)) {
                 $cookie_crumbs = explode(';', $cookie);
                 foreach ($cookie_crumbs as $cookie_crumb) {
                     if (strpos($cookie_crumb, 'unifises') !== false) {
-                        $this->cookies     = $cookie_crumb;
-                        $this->is_loggedin = true;
-                        $this->is_unifi_os = false;
+                        $this->cookies = $cookie_crumb;
+                        $this->isLoggedin = true;
+                        $this->isUnifiOs = false;
 
                         break;
                     }
 
                     if (strpos($cookie_crumb, 'TOKEN') !== false) {
-                        $this->cookies     = $cookie_crumb;
-                        $this->is_loggedin = true;
-                        $this->is_unifi_os = true;
+                        $this->cookies = $cookie_crumb;
+                        $this->isLoggedin = true;
+                        $this->isUnifiOs = true;
 
                         break;
                     }
@@ -3774,25 +3751,25 @@ class Client
             }
         }
 
-        return strlen($header_line);
+        return strlen($headerLine);
     }
 
     /**
      * Execute the cURL request
      *
-     * @param  string            $path    path for the request
-     * @param  object|array      $payload optional, payload to pass with the request
+     * @param string $path path for the request
+     * @param object|array $payload optional, payload to pass with the request
      * @return bool|array|string          response returned by the controller API, false upon error
      */
-    protected function exec_curl($path, $payload = null)
+    protected function execCurl(string $path, $payload = null)
     {
-        if (!in_array($this->method, $this->methods_allowed)) {
+        if (!in_array($this->method, $this->methodsAllowed, true)) {
             trigger_error('an invalid HTTP request type was used: ' . $this->method);
 
             return false;
         }
 
-        if (!($ch = $this->get_curl_resource())) {
+        if (!($ch = $this->getCurlResource())) {
             trigger_error('get_curl_resource() did not return a resource');
 
             return false;
@@ -3801,7 +3778,7 @@ class Client
         $this->headers = [];
         $url = $this->baseurl . $path;
 
-        if ($this->is_unifi_os) {
+        if ($this->isUnifiOs) {
             $url = $this->baseurl . '/proxy/network' . $path;
         }
 
@@ -3812,7 +3789,7 @@ class Client
         /**
          * when a payload is passed
          */
-        $json_payload  = '';
+        $json_payload = '';
         if (!empty($payload)) {
             $json_payload = json_encode($payload, JSON_UNESCAPED_SLASHES);
             $curl_options[CURLOPT_POSTFIELDS] = $json_payload;
@@ -3849,7 +3826,7 @@ class Client
                 break;
         }
 
-        if ($this->is_unifi_os && $this->method !== 'GET') {
+        if ($this->isUnifiOs && $this->method !== 'GET') {
             $this->create_x_csrf_token_header();
         }
 
@@ -3881,7 +3858,7 @@ class Client
                 error_log(__FUNCTION__ . ': needed to reconnect to UniFi controller');
             }
 
-            if ($this->exec_retries == 0) {
+            if ($this->execRetries == 0) {
                 /**
                  * explicitly clear the expired Cookie/Token, update other properties and log out before logging in again
                  */
@@ -3889,9 +3866,9 @@ class Client
                     $_SESSION['unificookie'] = '';
                 }
 
-                $this->is_loggedin = false;
-                $this->cookies     = '';
-                $this->exec_retries++;
+                $this->isLoggedin = false;
+                $this->cookies = '';
+                $this->execRetries++;
                 curl_close($ch);
 
                 /**
@@ -3902,12 +3879,12 @@ class Client
                 /**
                  * when re-login was successful, simply execute the same cURL request again
                  */
-                if ($this->is_loggedin) {
+                if ($this->isLoggedin) {
                     if ($this->debug) {
                         error_log(__FUNCTION__ . ': re-logged in, calling exec_curl again');
                     }
 
-                    return $this->exec_curl($path, $payload);
+                    return $this->execCurl($path, $payload);
                 }
 
                 if ($this->debug) {
@@ -3950,18 +3927,18 @@ class Client
      *
      * @return object|bool|resource cURL handle upon success, false upon failure
      */
-    protected function get_curl_resource()
+    protected function getCurlResource()
     {
         $ch = curl_init();
         if (is_object($ch) || is_resource($ch)) {
             $curl_options = [
-                CURLOPT_PROTOCOLS      => CURLPROTO_HTTPS | CURLPROTO_HTTP,
-                CURLOPT_SSL_VERIFYPEER => $this->ssl_verify_peer,
-                CURLOPT_SSL_VERIFYHOST => $this->ssl_verify_host,
-                CURLOPT_CONNECTTIMEOUT => $this->connect_timeout,
+                CURLOPT_PROTOCOLS => CURLPROTO_HTTPS | CURLPROTO_HTTP,
+                CURLOPT_SSL_VERIFYPEER => $this->sslVerifyPeer,
+                CURLOPT_SSL_VERIFYHOST => $this->sslVerifyHost,
+                CURLOPT_CONNECTTIMEOUT => $this->connectTimeout,
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_ENCODING       => '',
-                CURLOPT_HEADERFUNCTION => [$this, 'response_header_callback'],
+                CURLOPT_ENCODING => '',
+                CURLOPT_HEADERFUNCTION => [$this, 'responseHeaderCallback'],
             ];
 
             if ($this->debug) {
@@ -3970,7 +3947,7 @@ class Client
 
             if (!empty($this->cookies)) {
                 $curl_options[CURLOPT_COOKIESESSION] = true;
-                $curl_options[CURLOPT_COOKIE]        = $this->cookies;
+                $curl_options[CURLOPT_COOKIE] = $this->cookies;
             }
 
             curl_setopt_array($ch, $curl_options);

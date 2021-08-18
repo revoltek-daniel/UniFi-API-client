@@ -39,7 +39,7 @@ $port_idx = 24;
  * port configuration id to apply when enabling/disabling the port
  *
  * NOTE:
- * port configurations are available through list_portconf()
+ * port configurations are available through listPortconf()
  */
 $port_conf_id = '<enter _id value of desired port configuration>';
 
@@ -47,9 +47,9 @@ $port_conf_id = '<enter _id value of desired port configuration>';
  * initialize the UniFi API connection class and log in to the controller and do our thing
  */
 $unifi_connection   = new UniFi_API\Client($controlleruser, $controllerpassword, $controllerurl, $site_id, $controllerversion, false);
-$set_debug_mode     = $unifi_connection->set_debug($debug);
+$set_debug_mode     = $unifi_connection->setDebug($debug);
 $loginresults       = $unifi_connection->login();
-$data               = $unifi_connection->list_devices($device_mac);
+$data               = $unifi_connection->listDevices($device_mac);
 $device_id          = $data[0]->device_id;
 $existing_overrides = $data[0]->port_overrides;
 
@@ -70,7 +70,7 @@ $payload = [
     'port_overrides' => $existing_overrides
 ];
 
-$update_device = $unifi_connection->set_device_settings_base($device_id, $payload);
+$update_device = $unifi_connection->setDeviceSettingsBase($device_id, $payload);
 
 /**
  * provide feedback in json format

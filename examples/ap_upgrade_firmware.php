@@ -30,7 +30,7 @@ $login            = $unifi_connection->login();
 /**
  * Run the actual upgrade
  */
-$results = $unifi_connection->upgrade_device($device_mac);
+$results = $unifi_connection->upgradeDevice($device_mac);
 
 /**
  * provide feedback in json format from $response given by upgrade_device();

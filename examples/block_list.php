@@ -43,7 +43,7 @@ if ($site_id == "MUST_DEFINE_THIS") {
  * initialize the UniFi API connection class and log in to the controller
  */
 $unifi_connection = new UniFi_API\Client($controlleruser, $controllerpassword, $controllerurl, $site_id, $controllerversion);
-$set_debug_mode   = $unifi_connection->set_debug($debug);
+$set_debug_mode   = $unifi_connection->setDebug($debug);
 $loginresults     = $unifi_connection->login(); // always true regardless of site id
 
 foreach ($macs_to_block as $mac) {

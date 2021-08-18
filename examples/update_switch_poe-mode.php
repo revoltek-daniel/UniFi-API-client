@@ -63,9 +63,9 @@ function update_ports($running_config, $ports, $poe_mode){
 }
 
 $unifi_connection = new UniFi_API\Client($controlleruser, $controllerpassword, $controllerurl, $site_id, $controllerversion, false);
-$set_debug_mode   = $unifi_connection->set_debug(false);
+$set_debug_mode   = $unifi_connection->setDebug(false);
 $loginresults     = $unifi_connection->login();
-$data             = $unifi_connection->list_devices($device_mac);
+$data             = $unifi_connection->listDevices($device_mac);
 $device_id        = $data[0]->device_id;
 $current_conf     = $data[0]->port_overrides;
 
@@ -84,10 +84,10 @@ $new_ports_config = [
     'port_overrides' => update_ports($current_conf, $lanports, $poe_mode)
 ];
 
-$update_device = $unifi_connection->set_device_settings_base($device_id, $new_ports_config);
+$update_device = $unifi_connection->setDeviceSettingsBase($device_id, $new_ports_config);
 
 if (!$update_device) {
-    $error = $unifi_connection->get_last_results_raw();
+    $error = $unifi_connection->getLastResultsRaw();
     echo json_encode($error, JSON_PRETTY_PRINT);
 }
 

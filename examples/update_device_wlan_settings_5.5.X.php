@@ -52,9 +52,9 @@ $na_channel = 44;
  * initialize the UniFi API connection class and log in to the controller and do our thing
  */
 $unifi_connection = new UniFi_API\Client($controlleruser, $controllerpassword, $controllerurl, $site_id, $controllerversion, false);
-$set_debug_mode   = $unifi_connection->set_debug(false);
+$set_debug_mode   = $unifi_connection->setDebug(false);
 $loginresults     = $unifi_connection->login();
-$data             = $unifi_connection->list_devices($ap_mac);
+$data             = $unifi_connection->listDevices($ap_mac);
 $radio_table      = $data[0]->radio_table;
 $device_id        = $data[0]->device_id;
 
@@ -70,10 +70,10 @@ foreach ($radio_table as $radio) {
     }
 }
 
-$update_device = $unifi_connection->set_device_settings_base($device_id, ['radio_table' => $radio_table]);
+$update_device = $unifi_connection->setDeviceSettingsBase($device_id, ['radio_table' => $radio_table]);
 
 if (!$update_device) {
-    $error = $unifi_connection->get_last_results_raw();
+    $error = $unifi_connection->getLastResultsRaw();
     echo json_encode($error, JSON_PRETTY_PRINT);
 }
 

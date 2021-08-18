@@ -31,13 +31,13 @@ $site_id = '<enter your site id here>';
  * initialize the UniFi API connection class and log in to the controller
  */
 $unifi_connection = new UniFi_API\Client($controlleruser, $controllerpassword, $controllerurl, $site_id, $controllerversion);
-$set_debug_mode   = $unifi_connection->set_debug($debug);
+$set_debug_mode   = $unifi_connection->setDebug($debug);
 $loginresults     = $unifi_connection->login();
 
 /**
  * then we disable the device
  */
-$disable_result = $unifi_connection->disable_ap($device_id, true);
+$disable_result = $unifi_connection->disableAp($device_id, true);
 
 /**
  * or we enable the device, uncomment as neccesary (then also comment the previous call)

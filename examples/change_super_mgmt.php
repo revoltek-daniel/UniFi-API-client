@@ -26,9 +26,9 @@ $debug   = false;
  * initialize the UniFi API connection class and log in to the controller and do our thing
  */
 $unifi_connection = new UniFi_API\Client($controlleruser, $controllerpassword, $controllerurl, $site_id, $controllerversion, true);
-$set_debug_mode   = $unifi_connection->set_debug($debug);
+$set_debug_mode   = $unifi_connection->setDebug($debug);
 $loginresults     = $unifi_connection->login();
-$site_settings    = $unifi_connection->list_settings();
+$site_settings    = $unifi_connection->listSettings();
 
 $super_mgmt_settings = [];
 $super_mgmt_settings_id = '';
@@ -57,7 +57,7 @@ $super_mgmt_settings->live_chat = 'super-only';
 echo $super_mgmt_settings_id . PHP_EOL;
 echo json_encode($super_mgmt_settings, JSON_PRETTY_PRINT) . PHP_EOL . PHP_EOL;
 
-$update_results = $unifi_connection->set_super_mgmt_settings_base($super_mgmt_settings_id, $super_mgmt_settings);
+$update_results = $unifi_connection->setSuperMgmtSettingsBase($super_mgmt_settings_id, $super_mgmt_settings);
 
 /**
  * provide feedback in json format

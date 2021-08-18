@@ -32,7 +32,7 @@ $description = 'new site';
  */
 $unifi_connection = new UniFi_API\Client($controlleruser, $controllerpassword, $controllerurl, $site_id, $controllerversion);
 $loginresults     = $unifi_connection->login();
-$results          = $unifi_connection->create_site($description);
+$results          = $unifi_connection->createSite($description);
 
 /**
  * provide feedback in json format

@@ -72,7 +72,7 @@ if($debug === true) {
 $todo_shops = $open_shops;
 $active_shops = array();
 $close_shops = array();
-foreach($unifi_connection->list_sites() as $site){
+foreach($unifi_connection->listSites() as $site){
     $desc = $site->desc;
     // Does it look like a shop?
     if(preg_match("/([0-9][0-9][0-9]+)/", $desc, $matches)) {
@@ -92,7 +92,7 @@ foreach($todo_shops as $filnr => $city){
     $filnr = sprintf("%04d", $filnr);
     $desc = "{$filnr} {$city}";
     echo "Create site for {$filnr}\n";
-    $createsite = $unifi_connection->create_site($desc);
+    $createsite = $unifi_connection->createSite($desc);
     if($createsite === false) {
         echo "Failed to create site for {$filnr}, id {$siteid}\n";
         break;
@@ -100,7 +100,7 @@ foreach($todo_shops as $filnr => $city){
 }
 // Refresh site list
 if(count($todo_shops > 0)) {
-    foreach($unifi_connection->list_sites() as $site){
+    foreach($unifi_connection->listSites() as $site){
         $desc = $site->desc;
         // Does it look like a shop?
         if(preg_match("/([0-9][0-9][0-9]+)/", $desc, $matches)) {
@@ -139,16 +139,16 @@ die();
 // Foreach shop, select the site.
 foreach($active_shops as $filnr => $siteid) {
     $filnr = sprintf("%04d", $filnr);
-    $select = $unifi_connection->set_site($siteid);
+    $select = $unifi_connection->setSite($siteid);
 
     // fetch configured group settings, we need those later, we only use the Default group.
-    $wlangroups = $unifi_connection->list_wlan_groups($siteid);
+    $wlangroups = $unifi_connection->listWlanGroups($siteid);
     $usergroups = $unifi_connection->list_usergroups($siteid);
 
     if(isset($close_shops[floatval($filnr)])) {
         echo "Delete site {$siteid} with id ". $usergroups[0]->site_id ." for shop {$filnr}\n";
         if($debug===false) {
-            $delete = $unifi_connection->delete_site($usergroups[0]->site_id);
+            $delete = $unifi_connection->deleteSite($usergroups[0]->site_id);
         }
         if($delete === false) {
             echo "Failed to delete site for {$filnr}, id {$siteid}\n";
@@ -157,7 +157,7 @@ foreach($active_shops as $filnr => $siteid) {
     }
 
     // fetch configured group settings, we need those later, we only use the Default group.
-    $wlangroups = $unifi_connection->list_wlan_groups($siteid);
+    $wlangroups = $unifi_connection->listWlanGroups($siteid);
     $usergroups = $unifi_connection->list_usergroups($siteid);
     if($debug===true) {
         //var_export ($wlangroups);
@@ -199,25 +199,25 @@ foreach($active_shops as $filnr => $siteid) {
             echo "Update site setting {$key} id {$setting_id[$key]} for {$filnr}, id {$siteid}\n";
             switch($key){
                 case "country":
-                    $update_site[$key] = $unifi_connection->set_site_country($setting_id[$key], $sitesettings[$key]);
+                    $update_site[$key] = $unifi_connection->setSiteCountry($setting_id[$key], $sitesettings[$key]);
                     break;
                 case "locale":
-                    $update_site[$key] = $unifi_connection->set_site_locale($setting_id[$key], $sitesettings[$key]);
+                    $update_site[$key] = $unifi_connection->setSiteLocale($setting_id[$key], $sitesettings[$key]);
                     break;
                 case "connectivity ":
-                    $update_site[$key] = $unifi_connection->set_site_connectivity($setting_id[$key], $sitesettings[$key]);
+                    $update_site[$key] = $unifi_connection->setSiteConnectivity($setting_id[$key], $sitesettings[$key]);
                     break;
                 case "mgmt":
-                    $update_site[$key] = $unifi_connection->set_site_mgmt($setting_id[$key], $sitesettings[$key]);
+                    $update_site[$key] = $unifi_connection->setSiteMgmt($setting_id[$key], $sitesettings[$key]);
                     break;
                 case "guest_access":
-                    $update_site[$key] = $unifi_connection->set_site_guest_access($setting_id[$key], $sitesettings[$key]);
+                    $update_site[$key] = $unifi_connection->setSiteGuestAccess($setting_id[$key], $sitesettings[$key]);
                     break;
                 case "snmp":
-                    $update_site[$key] = $unifi_connection->set_site_snmp($setting_id[$key], $sitesettings[$key]);
+                    $update_site[$key] = $unifi_connection->setSiteSnmp($setting_id[$key], $sitesettings[$key]);
                     break;
                 case "ntp":
-                    $update_site[$key] = $unifi_connection->set_site_ntp($setting_id[$key], $sitesettings[$key]);
+                    $update_site[$key] = $unifi_connection->setSiteNtp($setting_id[$key], $sitesettings[$key]);
                     break;
                 default:
                     break;
@@ -231,7 +231,7 @@ foreach($active_shops as $filnr => $siteid) {
         // Template network didn't exist, create
         if($wired[$key] === false) {
             echo "Create new vlan {$key} for {$filnr}, id {$siteid}\n";
-            $addnetwork[$key] = $unifi_connection->create_network($wirednetworks[$key]);
+            $addnetwork[$key] = $unifi_connection->createNetwork($wirednetworks[$key]);
             // echo json_encode($addvlan, JSON_PRETTY_PRINT);
         }
         if($addnetwork[$key] === false)
@@ -240,7 +240,7 @@ foreach($active_shops as $filnr => $siteid) {
         // Do we need to update?
         if(compare_array_item($wirednetworks[$key], $wired[$key])) {
             echo "Update network {$key} id {$wired_id[$key]} for {$filnr}, id {$siteid}\n";
-            $updatenetwork[$key] = $unifi_connection->set_networksettings_base($wired_id[$key], $wirednetworks[$key]);
+            $updatenetwork[$key] = $unifi_connection->setNetworkSettingsBase($wired_id[$key], $wirednetworks[$key]);
         }
         if($updatenetwork[$key] === false)
             echo "Failed to update network {$key} for {$filnr}, id {$siteid} ". print_r($wirednetworks[$key], true) .  print_r($wired_id, true) ."\n";
@@ -261,7 +261,7 @@ foreach($active_shops as $filnr => $siteid) {
         // Do we need to update?
         if(compare_array_item($wlannetworks[$key], $wlan[$key])) {
             echo "Update wlan {$key} id {$wlan_id[$key]} for {$filnr}, id {$siteid}\n";
-            $updatewlan[$key] = $unifi_connection->set_wlansettings_base($wlan_id[$key], $wlannetworks[$key]);
+            $updatewlan[$key] = $unifi_connection->setWlanSettingsBase($wlan_id[$key], $wlannetworks[$key]);
         }
         if($updatewlan[$key] === false)
             echo "Failed to update wlan {$key} for {$filnr}, id {$siteid} ". print_r($wlannetworks[$key], true) . print_r($wlan_id, true) ."\n";
@@ -269,7 +269,7 @@ foreach($active_shops as $filnr => $siteid) {
     }
 
     // Any devices for adoption?
-    $devices[$filnr] = $unifi_connection->list_devices();
+    $devices[$filnr] = $unifi_connection->listDevices();
     foreach($devices[$filnr] as $device) {
         if($device->adopted == 1)
             continue;
@@ -278,7 +278,7 @@ foreach($active_shops as $filnr => $siteid) {
         if(netMatch($wirednetworks['LAN']['ip_subnet'], $device->ip)) {
             // Adopt device in IP range. adopt_device($mac)
             echo "Adopting device {$device->mac} with ip {$device->ip} in network {$wirednetworks['LAN']['ip_subnet']} for shop {$filnr}\n";
-            $unifi_connection->adopt_device($device->mac);
+            $unifi_connection->adoptDevice($device->mac);
             // print_r($device);
         }
     }
@@ -299,7 +299,7 @@ function refresh_networks() {
     global $wirednetworks;
 
     // Fetch configured wired networks
-    $networkconf = $unifi_connection->list_networkconf();
+    $networkconf = $unifi_connection->listNetworkConf();
 
     foreach($wirednetworks as $key => $values) {
         $wired[$key] = false;
@@ -352,7 +352,7 @@ function fetch_site_conf() {
     global $setting_id;
 
     // Fetch site settings
-    $siteconf = $unifi_connection->list_settings($siteid);
+    $siteconf = $unifi_connection->listSettings($siteid);
     foreach($sitesettings as $key => $values)
         $sitesetting[$key] = false;
 

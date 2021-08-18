@@ -50,10 +50,10 @@ $new_cycle_enabled = false;
  * initialize the UniFi API connection class and log in to the controller and do our thing
  */
 $unifi_connection = new UniFi_API\Client($controlleruser, $controllerpassword, $controllerurl, $site_id, $controllerversion);
-$set_debug_mode   = $unifi_connection->set_debug($debug);
+$set_debug_mode   = $unifi_connection->setDebug($debug);
 $loginresults     = $unifi_connection->login();
 if ($loginresults) {
-    $pdu_details = $unifi_connection->list_devices($pdu_mac);
+    $pdu_details = $unifi_connection->listDevices($pdu_mac);
 
     /**
      * change the model below from USPPDUP to UP1 when using a USP-Plug (thanks to @thesohoguy for contributing this)
@@ -69,7 +69,7 @@ if ($loginresults) {
             }
         }
 
-        $pdu_update = $unifi_connection->set_device_settings_base($device_id, ['outlet_overrides' => $outlet_overrides]);
+        $pdu_update = $unifi_connection->setDeviceSettingsBase($device_id, ['outlet_overrides' => $outlet_overrides]);
 
         /**
          * provide feedback in json format
