@@ -123,7 +123,7 @@ class Client
             return true;
         }
 
-        if ($this->updateUnificookie()) {
+        if ($this->updateUnifiCookie()) {
             $this->isLoggedin = true;
 
             return true;
@@ -253,7 +253,7 @@ class Client
             $logout_path = '/api/auth/logout';
             $curl_options[CURLOPT_CUSTOMREQUEST] = 'POST';
 
-            $this->create_x_csrf_token_header();
+            $this->createCsrfTokenHeader();
         }
 
         $curl_options[CURLOPT_HTTPHEADER] = $this->headers;
@@ -338,7 +338,7 @@ class Client
      * @param string $mac client MAC address
      * @return bool        returns true upon success
      */
-    public function reconnect_sta($mac)
+    public function reconnect_sta(string $mac): bool
     {
         $payload = ['cmd' => 'kick-sta', 'mac' => strtolower($mac)];
 
@@ -351,7 +351,7 @@ class Client
      * @param string $mac client MAC address
      * @return bool        returns true upon success
      */
-    public function block_sta($mac)
+    public function blockClientDevice(string $mac): bool
     {
         $payload = ['cmd' => 'block-sta', 'mac' => strtolower($mac)];
 
@@ -381,7 +381,7 @@ class Client
      * @param array $macs array of client MAC addresses (strings)
      * @return bool        returns true upon success
      */
-    public function forget_sta($macs)
+    public function forgetClientDevices(array $macs): bool
     {
         $payload = ['cmd' => 'forget-sta', 'macs' => array_map('strtolower', $macs)];
 
@@ -432,7 +432,7 @@ class Client
      *                         the existing note for the client-device is removed and "noted" attribute set to false
      * @return bool            returns true upon success
      */
-    public function set_sta_note($user_id, $note = null)
+    public function set_sta_note($user_id, $note = null): bool
     {
         //$noted   = empty($note) ? false : true;
         $payload = ['note' => $note];
@@ -448,7 +448,7 @@ class Client
      *                         the existing name for the client device is removed
      * @return bool            returns true upon success
      */
-    public function set_sta_name($user_id, $name = null)
+    public function set_sta_name($user_id, $name = null): bool
     {
         $payload = ['name' => $name];
 
@@ -1057,12 +1057,12 @@ class Client
     /**
      * Fetch details for a single client device
      *
-     * @param string $client_mac optional, client device MAC address
+     * @param string $clientMac optional, client device MAC address
      * @return array              returns an object with the client device information
      */
-    public function stat_client($client_mac)
+    public function statClient(string $clientMac)
     {
-        return $this->fetchResults('/api/s/' . $this->site . '/stat/user/' . strtolower(trim($client_mac)));
+        return $this->fetchResults('/api/s/' . $this->site . '/stat/user/' . strtolower(trim($clientMac)));
     }
 
     /**
@@ -1180,7 +1180,7 @@ class Client
      *
      * @return array  containing the current AP groups on success
      */
-    public function list_apgroups()
+    public function listApGroups()
     {
         return $this->fetchResults('/v2/api/site/' . $this->site . '/apgroups');
     }
@@ -1248,19 +1248,19 @@ class Client
     /**
      * Create firewall group (using REST)
      *
-     * @param string $group_name name to assign to the firewall group
-     * @param string $group_type firewall group type; valid values are address-group, ipv6-address-group, port-group
-     * @param array $group_members array containing the members of the new group (IPv4 addresses, IPv6 addresses or port numbers)
+     * @param string $groupName name to assign to the firewall group
+     * @param string $groupType firewall group type; valid values are address-group, ipv6-address-group, port-group
+     * @param array $groupMembers array containing the members of the new group (IPv4 addresses, IPv6 addresses or port numbers)
      *                               (default is an empty array)
      * @return array                 containing a single object with attributes of the new firewall group on success
      */
-    public function create_firewallgroup($group_name, $group_type, $group_members = [])
+    public function createFirewallGroup(string $groupName, string $groupType, array $groupMembers = [])
     {
-        if (!in_array($group_type, ['address-group', 'ipv6-address-group', 'port-group'])) {
+        if (!in_array($groupType, ['address-group', 'ipv6-address-group', 'port-group'])) {
             return false;
         }
 
-        $payload = ['name' => $group_name, 'group_type' => $group_type, 'group_members' => $group_members];
+        $payload = ['name' => $groupName, 'group_type' => $groupType, 'group_members' => $groupMembers];
 
         return $this->fetchResults('/api/s/' . $this->site . '/rest/firewallgroup', $payload);
     }
@@ -1268,31 +1268,31 @@ class Client
     /**
      * Modify firewall group (using REST)
      *
-     * @param string $group_id _id value of the firewall group to modify
-     * @param string $site_id site_id value of the firewall group to modify
-     * @param string $group_name name of the firewall group
-     * @param string $group_type firewall group type; valid values are address-group, ipv6-address-group, port-group,
+     * @param string $groupId _id value of the firewall group to modify
+     * @param string $siteId site_id value of the firewall group to modify
+     * @param string $groupName name of the firewall group
+     * @param string $groupType firewall group type; valid values are address-group, ipv6-address-group, port-group,
      *                               group_type cannot be changed for an existing firewall group!
-     * @param array $group_members array containing the members of the group (IPv4 addresses, IPv6 addresses or port numbers)
+     * @param array $groupMembers array containing the members of the group (IPv4 addresses, IPv6 addresses or port numbers)
      *                               which overwrites the existing group_members (default is an empty array)
      * @return array                 containing a single object with attributes of the updated firewall group on success
      */
-    public function edit_firewallgroup($group_id, $site_id, $group_name, $group_type, $group_members = [])
+    public function editFirewallGroup(string $groupId, string $siteId, string $groupName, string $groupType, array $groupMembers = [])
     {
-        if (!in_array($group_type, ['address-group', 'ipv6-address-group', 'port-group'])) {
+        if (!in_array($groupType, ['address-group', 'ipv6-address-group', 'port-group'])) {
             return false;
         }
 
         $this->method = 'PUT';
         $payload = [
-            '_id' => $group_id,
-            'name' => $group_name,
-            'group_type' => $group_type,
-            'group_members' => $group_members,
-            'site_id' => $site_id
+            '_id' => $groupId,
+            'name' => $groupName,
+            'group_type' => $groupType,
+            'group_members' => $groupMembers,
+            'site_id' => $siteId
         ];
 
-        return $this->fetchResults('/api/s/' . $this->site . '/rest/firewallgroup/' . trim($group_id), $payload);
+        return $this->fetchResults('/api/s/' . $this->site . '/rest/firewallgroup/' . trim($groupId), $payload);
     }
 
     /**
@@ -1334,7 +1334,7 @@ class Client
      *
      * @return array  containing health metric objects
      */
-    public function list_health()
+    public function listHealth()
     {
         return $this->fetchResults('/api/s/' . $this->site . '/stat/health');
     }
@@ -1342,13 +1342,13 @@ class Client
     /**
      * Fetch dashboard metrics
      *
-     * @param boolean $five_minutes when true, return stats based on 5 minute intervals,
+     * @param bool $fiveMinutesInterval when true, return stats based on 5 minute intervals,
      *                               returns hourly stats by default (supported on controller versions 5.5.* and higher)
      * @return array                 containing dashboard metric objects (available since controller version 4.9.1.alpha)
      */
-    public function list_dashboard($five_minutes = false)
+    public function listDashboard(bool $fiveMinutesInterval = false)
     {
-        $path_suffix = $five_minutes ? '?scale=5minutes' : null;
+        $path_suffix = $fiveMinutesInterval ? '?scale=5minutes' : null;
 
         return $this->fetchResults('/api/s/' . $this->site . '/stat/dashboard' . $path_suffix);
     }
@@ -1358,7 +1358,7 @@ class Client
      *
      * @return array  containing known client device objects
      */
-    public function list_users()
+    public function listUsers()
     {
         return $this->fetchResults('/api/s/' . $this->site . '/list/user');
     }
@@ -1392,7 +1392,7 @@ class Client
      * @param int $within optional, hours to go back to list discovered "rogue" access points (default = 24 hours)
      * @return array         containing rogue/neighboring access point objects
      */
-    public function listRogueaps(int $within = 24)
+    public function listRogueAps(int $within = 24)
     {
         $payload = ['within' => $within];
 
@@ -1714,7 +1714,7 @@ class Client
      *                                when readonly is true.
      * @return bool                   true on success
      */
-    public function assignExistingAdmin(string $adminId, bool $readonly = false, bool $deviceAdopt = false, bool $deviceRestart = false)
+    public function assignExistingAdmin(string $adminId, bool $readonly = false, bool $deviceAdopt = false, bool $deviceRestart = false): bool
     {
         $payload = [
             'cmd' => 'grant-admin',
@@ -2261,40 +2261,40 @@ class Client
      * NOTES:
      * - both portal parameters are set to the same value!
      *
-     * @param bool $portal_enabled enable/disable the captive portal
-     * @param bool $portal_customized enable/disable captive portal customizations
-     * @param bool $redirect_enabled enable/disable captive portal redirect
-     * @param string $redirect_url url to redirect to, must include the http/https prefix, no trailing slashes
-     * @param string $x_password the captive portal (simple) password
-     * @param int $expire_number number of units for the authorization expiry
-     * @param int $expire_unit number of minutes within a unit (a value 60 is required for hours)
-     * @param string $section_id value of _id for the site settings section where key = "guest_access", settings can be obtained
+     * @param bool $portalEnabled enable/disable the captive portal
+     * @param bool $portalCustomized enable/disable captive portal customizations
+     * @param bool $redirectEnabled enable/disable captive portal redirect
+     * @param string $redirectUrl url to redirect to, must include the http/https prefix, no trailing slashes
+     * @param string $password the captive portal (simple) password
+     * @param int $expireNumber number of units for the authorization expiry
+     * @param int $expireUnit number of minutes within a unit (a value 60 is required for hours)
+     * @param string $sectionId value of _id for the site settings section where key = "guest_access", settings can be obtained
      *                                    using the listSettings() function
      * @return bool                       true on success
      */
-    public function set_guestlogin_settings(
-        $portal_enabled,
-        $portal_customized,
-        $redirect_enabled,
-        $redirect_url,
-        $x_password,
-        $expire_number,
-        $expire_unit,
-        $section_id
+    public function setGuestLoginSettings(
+        bool   $portalEnabled,
+        bool   $portalCustomized,
+        bool   $redirectEnabled,
+        string $redirectUrl,
+        string $password,
+        int    $expireNumber,
+        int    $expireUnit,
+        string $sectionId
     ): bool
     {
         $payload = [
-            'portal_enabled' => $portal_enabled,
-            'portal_customized' => $portal_customized,
-            'redirect_enabled' => $redirect_enabled,
-            'redirect_url' => $redirect_url,
-            'x_password' => $x_password,
-            'expire_number' => $expire_number,
-            'expire_unit' => $expire_unit,
-            '_id' => $section_id
+            'portal_enabled' => $portalEnabled,
+            'portal_customized' => $portalCustomized,
+            'redirect_enabled' => $redirectEnabled,
+            'redirect_url' => $redirectUrl,
+            'x_password' => $password,
+            'expire_number' => $expireNumber,
+            'expire_unit' => $expireUnit,
+            '_id' => $sectionId
         ];
 
-        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/set/setting/guest_access/' . $section_id, $payload);
+        return $this->fetchResultsBoolean('/api/s/' . $this->site . '/set/setting/guest_access/' . $sectionId, $payload);
     }
 
     /**
@@ -2375,7 +2375,7 @@ class Client
      * @param string $apName new name to assign to the access point
      * @return bool           true on success
      */
-    public function rename_ap(string $apId, string $apName): bool
+    public function renameAp(string $apId, string $apName): bool
     {
         $payload = ['name' => $apName];
 
@@ -2389,7 +2389,7 @@ class Client
      * @param string $siteId _id (24 char string) of the site to move the device to
      * @return bool            true on success
      */
-    public function move_device(string $mac, string $siteId): bool
+    public function moveDevice(string $mac, string $siteId): bool
     {
         $payload = ['site' => $siteId, 'mac' => strtolower($mac), 'cmd' => 'move-device'];
 
@@ -2658,17 +2658,13 @@ class Client
      */
     public function setWlanMacFilter(string $wlanId, string $macFilterPolicy, bool $macFilterEnabled, array $macs): bool
     {
-        if (!is_bool($macFilterEnabled)) {
-            return false;
-        }
-
         if (!in_array($macFilterPolicy, ['allow', 'deny'])) {
             return false;
         }
 
         $macs = array_map('strtolower', $macs);
         $payload = [
-            'mac_filter_enabled' => (bool)$macFilterEnabled,
+            'mac_filter_enabled' => $macFilterEnabled,
             'mac_filter_policy' => $macFilterPolicy,
             'mac_filter_list' => $macs
         ];
@@ -3039,6 +3035,7 @@ class Client
      */
     public function cmdStat(string $command)
     {
+        // stay with in_array if options is extended
         if (!in_array($command, ['reset-dpi'])) {
             return false;
         }
@@ -3135,7 +3132,7 @@ class Client
      * @param string $deviceMac optional, the MAC address of a single device for which the call must be made
      * @return array              containing known device objects (or a single device when using the <device_mac> parameter)
      */
-    public function listAps(string $deviceMac = null)
+    public function listAps(string $deviceMac = '')
     {
         trigger_error(
             'Function list_aps() has been deprecated, use list_devices() instead.',
@@ -3213,7 +3210,7 @@ class Client
      * @param string $mac device MAC address
      * @return bool        true on success
      */
-    public function restartAp(string $mac)
+    public function restartAp(string $mac): bool
     {
         trigger_error(
             'Function restart_ap() has been deprecated, use restart_device() instead.',
@@ -3657,7 +3654,7 @@ class Client
      * @param string $site the (short) site name to check
      * @return bool         true if (short) site name is valid, else returns false
      */
-    protected function checkSite($site)
+    protected function checkSite(string $site)
     {
         if ($this->debug && preg_match("/\s/", $site)) {
             trigger_error('The provided (short) site name may not contain any spaces');
@@ -3673,7 +3670,7 @@ class Client
      *
      * @return bool true when unificookie was updated, else returns false
      */
-    protected function updateUnificookie(): bool
+    protected function updateUnifiCookie(): bool
     {
         if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION['unificookie']) && !empty($_SESSION['unificookie'])) {
             $this->cookies = $_SESSION['unificookie'];
@@ -3696,7 +3693,7 @@ class Client
      *
      * @return bool true upon success or false when unable to extract the CSRF token
      */
-    protected function create_x_csrf_token_header(): bool
+    protected function createCsrfTokenHeader(): bool
     {
         if (!empty($this->cookies) && strpos($this->cookies, 'TOKEN') !== false) {
             $cookieBits = explode('=', $this->cookies);
@@ -3724,7 +3721,7 @@ class Client
      * @param int $headerLine the response header line number
      * @return int                          length of the header line
      */
-    protected function responseHeaderCallback($ch, int $headerLine)
+    protected function responseHeaderCallback($ch, int $headerLine): int
     {
         if (strpos($headerLine, 'unifises') !== false || strpos($headerLine, 'TOKEN') !== false) {
             $cookie = trim(str_replace(['set-cookie: ', 'Set-Cookie: '], '', $headerLine));
@@ -3782,17 +3779,17 @@ class Client
             $url = $this->baseurl . '/proxy/network' . $path;
         }
 
-        $curl_options = [
+        $curlOptions = [
             CURLOPT_URL => $url
         ];
 
         /**
          * when a payload is passed
          */
-        $json_payload = '';
+        $jsonPayload = '';
         if (!empty($payload)) {
-            $json_payload = json_encode($payload, JSON_UNESCAPED_SLASHES);
-            $curl_options[CURLOPT_POSTFIELDS] = $json_payload;
+            $jsonPayload = json_encode($payload, JSON_UNESCAPED_SLASHES);
+            $curlOptions[CURLOPT_POSTFIELDS] = $jsonPayload;
 
             /**
              * add empty Expect header to prevent cURL from injecting an "Expect: 100-continue" header
@@ -3813,28 +3810,28 @@ class Client
 
         switch ($this->method) {
             case 'POST':
-                $curl_options[CURLOPT_POST] = true;
+                $curlOptions[CURLOPT_POST] = true;
                 break;
             case 'DELETE':
-                $curl_options[CURLOPT_CUSTOMREQUEST] = 'DELETE';
+                $curlOptions[CURLOPT_CUSTOMREQUEST] = 'DELETE';
                 break;
             case 'PUT':
-                $curl_options[CURLOPT_CUSTOMREQUEST] = 'PUT';
+                $curlOptions[CURLOPT_CUSTOMREQUEST] = 'PUT';
                 break;
             case 'PATCH':
-                $curl_options[CURLOPT_CUSTOMREQUEST] = 'PATCH';
+                $curlOptions[CURLOPT_CUSTOMREQUEST] = 'PATCH';
                 break;
         }
 
         if ($this->isUnifiOs && $this->method !== 'GET') {
-            $this->create_x_csrf_token_header();
+            $this->createCsrfTokenHeader();
         }
 
         if (count($this->headers) > 0) {
-            $curl_options[CURLOPT_HTTPHEADER] = $this->headers;
+            $curlOptions[CURLOPT_HTTPHEADER] = $this->headers;
         }
 
-        curl_setopt_array($ch, $curl_options);
+        curl_setopt_array($ch, $curlOptions);
 
         /**
          * execute the cURL request
@@ -3847,18 +3844,18 @@ class Client
         /**
          * fetch the HTTP response code
          */
-        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
         /**
          * an HTTP response code 401 (Unauthorized) indicates the Cookie/Token has expired in which case
          * re-login is required
          */
-        if ($http_code == 401) {
+        if ($httpCode === 401) {
             if ($this->debug) {
                 error_log(__FUNCTION__ . ': needed to reconnect to UniFi controller');
             }
 
-            if ($this->execRetries == 0) {
+            if ($this->execRetries === 0) {
                 /**
                  * explicitly clear the expired Cookie/Token, update other properties and log out before logging in again
                  */
@@ -3901,11 +3898,11 @@ class Client
             print_r(curl_getinfo($ch));
             print PHP_EOL . '-------URL & PAYLOAD---------' . PHP_EOL;
             print $url . PHP_EOL;
-            if (empty($json_payload)) {
+            if (empty($jsonPayload)) {
                 print 'empty payload';
             }
 
-            print $json_payload;
+            print $jsonPayload;
             print PHP_EOL . '----------RESPONSE-----------' . PHP_EOL;
             print $response;
             print PHP_EOL . '-----------------------------' . PHP_EOL;
@@ -3957,4 +3954,28 @@ class Client
 
         return false;
     }
+
+    ########################################### renamed
+
+    /**
+     * @param array $macs
+     * @return bool
+     * @deprecated use forgetClientDevices()
+     * @see forgetClientDevices()
+     */
+    public function forgetSta(array $macs): bool {
+        return $this->forgetClientDevices($macs);
+    }
+
+    /**
+     * @param string $mac
+     * @return bool
+     * @deprecated use blockClientDevice()
+     * @see blockClientDevice()
+     */
+    public function blockSta(string $mac): bool
+    {
+        return $this->blockClientDevice($mac);
+    }
+
 }

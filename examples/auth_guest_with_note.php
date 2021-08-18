@@ -50,7 +50,7 @@ $loginresults     = $unifi_connection->login();
  * we authorize the device for the requested duration and attach the note to it's object
  */
 $auth_result  = $unifi_connection->authorize_guest($mac, $duration);
-$getid_result = $unifi_connection->stat_client($mac);
+$getid_result = $unifi_connection->statClient($mac);
 $user_id      = $getid_result[0]->_id;
 $note_result  = $unifi_connection->set_sta_note($user_id, $note);
 

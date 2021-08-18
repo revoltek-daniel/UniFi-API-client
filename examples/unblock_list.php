@@ -61,7 +61,7 @@ foreach ($macs_to_unblock as &$mac) {
      */
     sleep(1);
 
-    $getid_result = $unifi_connection->stat_client($mac);
+    $getid_result = $unifi_connection->statClient($mac);
 
     if (property_exists($getid_result[0], "oui")) {
         // this field(manufacturer) seems to exist on valid mac addresses

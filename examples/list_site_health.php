@@ -30,7 +30,7 @@ $site_id = '<enter your site id here>';
 $unifi_connection = new UniFi_API\Client($controlleruser, $controllerpassword, $controllerurl, $site_id, $controllerversion);
 $set_debug_mode   = $unifi_connection->setDebug($debug);
 $loginresults     = $unifi_connection->login();
-$result           = $unifi_connection->list_health();
+$result           = $unifi_connection->listHealth();
 
 /**
  * output the results in correct json formatting
