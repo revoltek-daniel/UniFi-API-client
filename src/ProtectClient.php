@@ -197,11 +197,11 @@ class ProtectClient extends Client
         /**
          * guard clause to check if logged in when needed
          */
-        if (!$this->is_loggedin) {
+        if (!$this->is_logged_in) {
             return false;
         }
 
-        if (!($ch = $this->get_curl_resource())) {
+        if (!($ch = $this->get_curl_handle())) {
             \trigger_error('get_curl_resource() did not return a resource');
 
             return false;
@@ -231,7 +231,7 @@ class ProtectClient extends Client
             }
 
             if ($this->exec_retries === 0) {
-                $this->is_loggedin = false;
+                $this->is_logged_in = false;
                 $this->cookies     = '';
                 $this->exec_retries++;
                 \curl_close($ch);
@@ -245,7 +245,7 @@ class ProtectClient extends Client
                 /**
                  * when re-login was successful, simply execute the same cURL request again
                  */
-                if ($this->is_loggedin) {
+                if ($this->is_logged_in) {
                     if ($this->debug) {
                         \error_log(__FUNCTION__ . ': re-logged in, calling exec_curl again');
                     }
@@ -295,7 +295,7 @@ class ProtectClient extends Client
         /**
          * guard clause to check if logged in
          */
-        if (!$this->is_loggedin) {
+        if (!$this->is_logged_in) {
             return false;
         }
 
