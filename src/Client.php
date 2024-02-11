@@ -48,6 +48,8 @@ class Client
     protected $curl_request_timeout = 30;
     protected $curl_connect_timeout = 10;
     protected $unifi_os_endpoint  = '/proxy/network';
+    protected $cookiePath = '';
+    protected $keepSession = false;
 
     /**
      * Construct an instance of the UniFi API client class
@@ -110,7 +112,7 @@ class Client
         /**
          * log out, if needed
          */
-        if ($this->is_logged_in) {
+        if ($this->is_logged_in && $this->keepSession === false) {
             $this->logout();
         }
     }
@@ -273,9 +275,29 @@ class Client
 
         curl_close($ch);
 
+        if ($this->keepSession && $this->cookiePath && \file_exists($this->cookiePath)) {
+            unlink($this->cookiePath);
+        }
+
         $this->is_logged_in = false;
         $this->cookies      = '';
         return true;
+    }
+
+    /**
+     * @param string $cookiePath
+     */
+    public function setCookiePath($cookiePath)
+    {
+        $this->cookiePath = $cookiePath;
+    }
+
+    /**
+     * @param bool $keepSession
+     */
+    public function setKeepSession($keepSession)
+    {
+        $this->keepSession = $keepSession;
     }
 
     /****************************************************************
@@ -3814,6 +3836,13 @@ class Client
      */
     protected function update_unificookie()
     {
+        if ($this->cookiePath && \file_exists($this->cookiePath)) {
+            $this->cookies = \file_get_contents($this->cookiePath);
+            $this->is_unifi_os = true;
+
+            return true;
+        }
+
         if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION['unificookie']) && !empty($_SESSION['unificookie'])) {
             $this->cookies = $_SESSION['unificookie'];
 
@@ -3875,7 +3904,10 @@ class Client
                         break;
                     }
 
-                    if (strpos($cookie_crumb, 'TOKEN') !== false) {
+                    if (strpos($cookie_crumb, 'TOKEN') !== false && \strlen($cookie_crumb) > 6) {
+                        if ($this->cookiePath && $this->keepSession) {
+                            \file_put_contents($this->cookiePath, $cookie_crumb);
+                        }
                         $this->cookies      = $cookie_crumb;
                         $this->is_logged_in = true;
                         $this->is_unifi_os  = true;
