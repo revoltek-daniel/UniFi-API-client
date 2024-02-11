@@ -12,6 +12,10 @@ class ProtectClient extends Client
     const EVENT_TYPE_OFF = 'off';
     const EVENT_TYPE_PROVISION = 'provision';
 
+    const SMART_DETECTION_EVENT_TYPE_VEHICLE = 'vehicle';
+    const SMART_DETECTION_EVENT_TYPE_AUDIO = 'audio';
+    const SMART_DETECTION_EVENT_TYPE_PERSON = 'person';
+
     /**
      * Protect endpoint
      * @var string
@@ -84,6 +88,30 @@ class ProtectClient extends Client
         }
 
         return $this->fetchResults('/api/events' . $parameters);
+    }
+
+    /**
+     * Get Smart Detection Events
+     *
+     * @param int $start Start date as timestamp
+     * @param int $end End date as timestamp
+     * @param string $direction Sort order use DESC or ASC
+     * @param string $type Event Type (use constants SMART_DETECTION_EVENT_)
+     * @param int $limit
+     * @return array|bool
+     */
+    public function getDetections($start, $end, $direction = 'DESC', $type = null, $limit = null)
+    {
+        $parameters = '?start=' . $start . '000'.  '&end=' . $end . '999&orderDirection=' . $direction;
+        if ($limit !== null) {
+            $parameters .= '&limit=' . $limit;
+        }
+
+        if ($type !== null) {
+            $parameters .= '&labels=smartDetectType:' . $type;
+        }
+
+        return $this->fetchResults('/api/detection-search' . $parameters);
     }
 
     /**
