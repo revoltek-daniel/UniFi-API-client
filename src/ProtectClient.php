@@ -12,6 +12,9 @@ class ProtectClient extends Client
     const EVENT_TYPE_OFF = 'off';
     const EVENT_TYPE_PROVISION = 'provision';
 
+    const EVENT_TYPE_SMART_DETECT_ZONE = 'smartDetectZone';
+    const EVENT_TYPE_SMART_DETECT_AUDIO = 'smartAudioDetect';
+
     const SMART_DETECTION_EVENT_TYPE_VEHICLE = 'vehicle';
     const SMART_DETECTION_EVENT_TYPE_AUDIO = 'audio';
     const SMART_DETECTION_EVENT_TYPE_PERSON = 'person';
