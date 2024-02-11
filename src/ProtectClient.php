@@ -253,6 +253,17 @@ class ProtectClient extends Client
         $http_code = \curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
         /**
+         * if 404 error remove opened file
+         */
+        if ($http_code === 404) {
+            \curl_close($ch);
+            \fclose($fp);
+            \unlink($path);
+
+            return false;
+        }
+
+        /**
          * an HTTP response code 401 (Unauthorized) indicates the Cookie/Token has expired in which case
          * re-login is required
          */
