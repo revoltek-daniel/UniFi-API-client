@@ -279,6 +279,10 @@ class ProtectClient extends Client
                 \curl_close($ch);
                 \fclose($fp);
 
+                if ($this->keepSession && $this->cookiePath && \file_exists($this->cookiePath)) {
+                    unlink($this->cookiePath);
+                }
+
                 /**
                  * then login again
                  */

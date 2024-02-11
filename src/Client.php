@@ -4036,6 +4036,10 @@ class Client
                 $this->exec_retries++;
                 curl_close($ch);
 
+                if ($this->keepSession && $this->cookiePath && \file_exists($this->cookiePath)) {
+                    \unlink($this->cookiePath);
+                }
+
                 /**
                  * then login again
                  */
