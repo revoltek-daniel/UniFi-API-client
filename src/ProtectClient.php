@@ -94,6 +94,17 @@ class ProtectClient extends Client
     }
 
     /**
+     * Get event data by id.
+     *
+     * @param string $id
+     * @return array|bool
+     */
+    public function getEvent($id)
+    {
+        return $this->fetchResults('/api/events/' . $id);
+    }
+
+    /**
      * Get Smart Detection Events
      *
      * @param int $start Start date as timestamp
